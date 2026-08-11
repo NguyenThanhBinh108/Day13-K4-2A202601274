@@ -22,21 +22,17 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`: **100/100** (baseline canonical run trên port 8000)
+- Điểm `validate_logs.py`: **100/100** (canonical baseline run trên port 8000, 10 correlation ID, 0 PII leak)
 - Tổng số traces: **≥10** (do P3 tạo, evidence trong `submission/evidence/03-traces-list.png`)
 - Số PII leak còn lại: **0**
 - Link/đường dẫn dashboard: **<điền sau khi P4 deploy>**
 
----
-
 ## 3. Logging và tracing
 
-- Evidence correlation ID: `submission/evidence/01-validate-logs.png`
+- Evidence correlation ID: `submission/evidence/p1-notes.md` + `submission/evidence/01-validate-logs.png`
 - Evidence PII redaction: `submission/evidence/p2-notes.md` + `submission/evidence/p2-04-validate-logs.png`
 - Evidence trace waterfall: `submission/evidence/04-trace-waterfall.png`
 - Giải thích một span đáng chú ý: **<điền khi có trace thật>**
-
----
 
 ## 4. Prompt versioning
 
@@ -46,13 +42,15 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 - Trace ID của mỗi version: **<điền 2 trace ID từ P3>**
 - Bằng chứng đổi label hoặc rollback: `submission/evidence/07-rollback-before.png`, `08-rollback-after.png`
 
----
-
 ## 5. Dashboard, SLO và alerts
 
 - Kết quả `validate_dashboard.py`: **HỢP LỆ: 6/6 panel**
 - Evidence dashboard: `submission/evidence/09-dashboard-baseline.png`, `10-dashboard-incident.png`
-- SLO đã chọn và lý do: **<điền theo config/slo.yaml>**
+- SLO đã chọn và lý do:
+  - `latency_p95_ms`: target 99.5%, objective 3000ms — baseline ~150ms, challenge incident ~2660ms, đặt ngưỡng 3000ms để bắt sớm
+  - `error_rate_pct`: target 99.0%, objective 2% — challenge run cho thấy 0% error, target 2% có buffer nhạy
+  - `daily_cost_usd`: target 100%, objective 2.5 USD — ~0.0025 USD/request, 1000 request/ngày = ~2.5 USD
+  - `quality_score_avg`: target 95.0%, objective 0.75 — mock trả ~0.9, target 0.75 đảm bảo output chất lượng
 - Alert rules và runbook: `submission/evidence/11-alert-rules.png`, `12-runbook-alert1.png`, `13-runbook-alert2.png`, `14-runbook-alert3.png`
 
 ---

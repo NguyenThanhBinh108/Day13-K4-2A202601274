@@ -16,7 +16,7 @@ PII_DETECTORS = {
 }
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Kiểm tra log schema và PII của Day 13")
     parser.add_argument(
         "--log-path",
@@ -24,7 +24,7 @@ def main() -> None:
         default=LOG_PATH,
         help="Đường dẫn file log (mặc định đọc env LOG_PATH hoặc data/logs.jsonl)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     log_path = args.log_path
 
     if not log_path.exists():

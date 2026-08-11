@@ -4,13 +4,25 @@ slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    note: Replace with your group's target
+    note: >-
+      Dựa trên practice run: baseline ~150-160ms, challenge incident ~2656-2660ms.
+      Đặt target 3000ms (p95) để bắt được sự tăng đáng kể nhưng không quá nhạy.
+      Dùng cho alert symptom-based "Tail latency tăng đột biến".
   error_rate_pct:
     objective: 2
     target: 99.0
+    note: >-
+      Challenge run cho thấy error_rate = 0% (không có exception trong mock pipeline).
+      Đặt target 2% để có buffer nhạy, phù hợp với production tolerance.
   daily_cost_usd:
     objective: 2.5
     target: 100.0
+    note: >-
+      Trung bình mỗi request ~0.0025 USD. Với 1000 request/ngày, chi phí ~2.5 USD.
+      Đặt target 2.5 USD/ngày để phát hiện cost spike bất thường.
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    note: >-
+      Mock LLM trả quality_score ~0.9. Đặt target 0.75 để đảm bảo output không quá tệ,
+      phù hợp với SLO service level indicator.

@@ -4,13 +4,36 @@ slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    note: Replace with your group's target
+    rationale: >
+      Khớp threshold p95 trong config/dashboard.yaml và latency_threshold_ms mặc
+      định của challenge chính thức. FakeLLM sleep nền khoảng 150ms; kịch bản
+      rag_slow cộng thêm 2.5s, nên ngưỡng 3000ms đủ nhạy để bắt incident thật mà
+      không báo động giả lúc tải bình thường (concurrency 5). Target 99.5%/28
+      ngày tương đương error budget ~201 phút vi phạm được phép — đủ dư địa cho
+      vài lần practice/challenge trong buổi lab mà không phá SLO.
   error_rate_pct:
     objective: 2
     target: 99.0
+    rationale: >
+      Khớp threshold error_rate của panel errors. App dùng FakeLLM/RAG giả lập
+      nên tỉ lệ lỗi kỳ vọng gần 0% khi không có incident; ngưỡng 2% đủ room cho
+      lỗi hạ tầng thoáng qua (timeout, retry) mà không che mất incident tool_fail
+      thật, vì tool_fail làm error rate tăng vượt xa 2% chỉ trong vài giây.
   daily_cost_usd:
     objective: 2.5
     target: 100.0
+    rationale: >
+      Khớp threshold total của panel cost. Với công thức cost trong app/agent.py
+      ($3/1M input token, $15/1M output token) và tải load_test practice (khoảng
+      15-30 request), tổng cost bình thường dưới $0.5; ngưỡng $2.5 đủ nhạy để
+      phát hiện kịch bản cost_spike (nhân tokens_out lên 4 lần) nhưng không báo
+      động giả với dao động nhỏ.
   quality_score_avg:
     objective: 0.75
     target: 95.0
+    rationale: >
+      Khớp threshold mean của panel quality. Heuristic quality trong
+      app/agent.py cộng điểm khi có doc RAG và câu trả lời đủ dài, trừ điểm khi
+      câu trả lời bị redact PII; mức 0.75 phản ánh "câu trả lời bình thường có
+      RAG" (khoảng 0.8), đủ thấp để không báo động giả nhưng đủ cao để bắt được
+      lúc RAG fail (tool_fail) làm quality tụt xuống khoảng 0.5-0.6.

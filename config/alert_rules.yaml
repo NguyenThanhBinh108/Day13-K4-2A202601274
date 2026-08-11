@@ -1,19 +1,31 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: high_latency_p95
+    severity: critical
+    condition: >-
+      p95(latency_ms) tính trên rolling window 5 phút > 3000ms (khớp
+      dashboard.yaml panel latency + slo.yaml latency_p95_ms), duy trì liên
+      tục >= 5 phút
     type: symptom-based
-    owner: TODO
+    owner: "P5 (on-call điều tra) — escalate P3 nếu root cause ở RAG/LLM"
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+
+  - name: high_error_rate
+    severity: critical
+    condition: >-
+      error_rate_pct = count(event=="request_failed") /
+      count(event=="request_received") * 100, tính trên rolling window 5
+      phút > 2% (khớp dashboard.yaml panel errors + slo.yaml
+      error_rate_pct), duy trì liên tục >= 5 phút
     type: symptom-based
-    owner: TODO
+    owner: "P5 (on-call điều tra) — escalate P3 nếu lỗi ở agent/RAG, P1 nếu ở middleware"
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+
+  - name: cost_budget_burn
+    severity: warning
+    condition: >-
+      sum(cost_usd) tính trên rolling window 60 phút > $2.5 (khớp
+      dashboard.yaml panel cost + slo.yaml daily_cost_usd), duy trì liên
+      tục >= 10 phút
     type: symptom-based
-    owner: TODO
+    owner: "P5 (on-call điều tra) — escalate P3 nếu do prompt/model config"
     runbook: docs/alerts.md#alert-3

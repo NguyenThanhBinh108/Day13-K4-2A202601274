@@ -11,7 +11,7 @@ config/dashboard.yaml lúc chạy. Không panel nào được viết cứng tron
 dashboard không bao giờ lệch khỏi contract chấm điểm.
 
 Ví dụ:
-    python scripts/dashboard_app.py --source data/dev/p4.jsonl --out build/dashboard.html
+    python scripts/dashboard_app.py --source data/dev/p4.jsonl
     python scripts/dashboard_app.py --source data/logs.jsonl --now latest --open
     python scripts/dashboard_app.py --watch          # sinh lại theo nhịp refresh của contract
 """
@@ -41,7 +41,10 @@ from scripts.validate_dashboard import DashboardConfigError, load_dashboard_conf
 
 DEFAULT_CONFIG = REPO_ROOT / "config" / "dashboard.yaml"
 DEFAULT_SOURCE = Path("data/logs.jsonl")
-DEFAULT_OUT = Path("build/dashboard.html")
+# Ghi vào `data/dev/` — thư mục sandbox của P4 theo docs/TEAM_SPLIT.md và đã nằm trong
+# .gitignore. Một thư mục mới như `build/` chưa được ignore sẽ hiện ra trong
+# `git status --short`, đúng thứ checklist nộp bài yêu cầu phải sạch.
+DEFAULT_OUT = Path("data/dev/p4-dashboard.html")
 
 # Số chữ số thập phân theo `unit` của contract, cộng hai đơn vị nội bộ cho phép đếm
 # ("request" và ""); unit lạ thì rơi về mặc định.
@@ -127,8 +130,10 @@ def load_records(path: Path) -> tuple[list[LogRecord], SourceStats]:
 
     records: list[LogRecord] = []
     try:
-        # errors="replace" để một vài byte hỏng không giết cả dashboard.
-        with path.open("r", encoding="utf-8", errors="replace") as handle:
+        # errors="replace" để một vài byte hỏng không giết cả dashboard. "utf-8-sig" vì
+        # PowerShell trên Windows mặc định ghi BOM khi redirect (`... > loc.jsonl`): với
+        # "utf-8" thuần, BOM dính vào đầu dòng 1 và bản ghi đầu tiên bị đếm là JSON hỏng.
+        with path.open("r", encoding="utf-8-sig", errors="replace") as handle:
             for line in handle:
                 stats.total_lines += 1
                 text = line.strip()
@@ -357,16 +362,23 @@ def agg_count(ctx: PanelContext) -> Metric:
 def agg_rate_per_minute(ctx: PanelContext) -> Metric:
     series = _minute_series(ctx, lambda _: 1.0)
     total = sum(series)
+    minutes = ctx.window.minutes
     observed = _observed_minutes(series)
-    # Quy ước: chia cho số phút QUAN SÁT ĐƯỢC (từ phút đầu tới phút cuối có request),
-    # không chia cứng cho 60. Load test dồn trong 1-2 phút mà chia cho cả cửa sổ sẽ ra
-    # rate giả thấp và làm sai lệch ngưỡng "có traffic hay không".
-    rate = total / observed if observed else None
-    window_rate = total / ctx.window.minutes if ctx.window.minutes else 0.0
+    peak = max(series) if series else 0.0
+    # Mẫu số là ĐỘ DÀI CỬA SỔ trong contract (time_range_minutes), không phải số phút có
+    # traffic. Chia cho số phút quan sát được làm phép đo mất tính đơn điệu: 1 request lẻ
+    # ra đúng 1.00/phút (ĐẠT) trong khi 2 request cách nhau 59 phút chỉ còn 0.03/phút
+    # (VI PHẠM) — thêm traffic mà panel lại xấu đi, và một hệ thống chết hẳn sau 1 request
+    # duy nhất vẫn báo xanh đúng bằng ngưỡng. Threshold `rate_per_minute >= 1` là ngưỡng
+    # sàn "hệ thống còn nhận request đều đặn hay không" nên mẫu số phải cố định.
+    # Không có request nào thì trả None (thiếu dữ liệu) thay vì 0, cùng quy ước với các
+    # panel khác: log rỗng không phải bằng chứng là traffic bằng 0.
+    rate = total / minutes if total and minutes else None
     note = (
-        f"rate = {total:.0f} request / {observed} phút quan sát được; "
-        f"trung bình trên cả cửa sổ {ctx.window.minutes} phút là {window_rate:.2f}/phút."
-        if observed
+        f"rate = {total:.0f} request / {minutes} phút của cửa sổ. "
+        f"Đỉnh {peak:.0f} request trong một phút; "
+        f"{observed} phút có traffic (trung bình {total / observed:.2f}/phút trên các phút đó)."
+        if total and observed
         else "Không có request nào trong cửa sổ."
     )
     return Metric(
@@ -1036,8 +1048,12 @@ def render_html(
     counts = Counter(panel.status for panel in panels)
     banners = "".join(render_banners(stats, in_window, window))
     body_panels = "".join(render_panel(panel) for panel in panels)
-    return f"""<title>{esc(title)} — {esc(window.label())}</title>
+    # Thiếu doctype là trình duyệt rơi vào quirks mode (document.compatMode = BackCompat),
+    # khi đó box model và chiều cao dòng không theo chuẩn nên ảnh chụp evidence có thể lệch
+    # so với lúc dev. `<meta charset>` đặt trước `<title>` vì title chứa ký tự ngoài ASCII.
+    return f"""<!doctype html>
 <meta charset="utf-8">
+<title>{esc(title)} — {esc(window.label())}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="{refresh}">
 <style>{CSS}</style>

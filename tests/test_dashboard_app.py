@@ -163,6 +163,19 @@ def test_load_records_counts_broken_lines_instead_of_crashing(tmp_path: Path) ->
     assert len(records) == stats.parsed == 27
 
 
+def test_load_records_ignores_utf8_bom_written_by_powershell(tmp_path: Path) -> None:
+    source = tmp_path / "bom.jsonl"
+    source.write_text(
+        json.dumps({"ts": "2026-01-01T12:00:00.000Z", "event": "request_received"}) + "\n",
+        encoding="utf-8-sig",
+    )
+
+    records, stats = load_records(source)
+
+    assert stats.bad_json == 0
+    assert [record.event for record in records] == ["request_received"]
+
+
 def test_load_records_on_missing_file_reports_instead_of_raising(tmp_path: Path) -> None:
     records, stats = load_records(tmp_path / "không-có.jsonl")
 
@@ -203,15 +216,62 @@ def test_latency_panel_percentiles(dashboard) -> None:
     assert panels["latency"].status == "violated"  # p95 = 5000 > 3000
 
 
-def test_traffic_panel_rate_uses_observed_minutes(dashboard) -> None:
+def test_traffic_panel_rate_uses_contract_window_length(dashboard) -> None:
     _, panels, _, _ = dashboard
     metrics = {metric.aggregation: metric for metric in panels["traffic"].metrics}
 
     assert metrics["count"].value == 12
-    assert metrics["rate_per_minute"].value == pytest.approx(4.0)  # 12 request / 3 phút
+    # 12 request trên cửa sổ 60 phút của contract = 0.2 request/phút, dưới ngưỡng >= 1.
+    assert metrics["rate_per_minute"].value == pytest.approx(12 / 60)
     assert sum(point.value for point in metrics["rate_per_minute"].points) == 12
     assert len(metrics["rate_per_minute"].points) == 60  # đúng một cột mỗi phút
-    assert panels["traffic"].status == "ok"
+    assert panels["traffic"].status == "violated"
+
+
+def test_traffic_rate_never_falls_when_traffic_is_added(tmp_path: Path) -> None:
+    """Thêm request không bao giờ được làm rate tụt xuống.
+
+    Mẫu số "số phút quan sát được" từng vi phạm tính chất này: 1 request lẻ ra đúng
+    1.00/phút (ĐẠT NGƯỠNG) còn 2 request cách nhau 59 phút chỉ còn 0.03/phút (VI PHẠM).
+    """
+    stamps = [f"2026-01-01T11:{minute:02d}:00.000Z" for minute in range(2, 60)]
+
+    rates: list[float] = []
+    for count in range(1, len(stamps) + 1):
+        source = tmp_path / f"traffic-{count}.jsonl"
+        source.write_text(
+            "\n".join(
+                json.dumps({"ts": stamp, "event": "request_received"})
+                for stamp in stamps[:count]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        _, panels, _, _ = build_dashboard(CONFIG, source, ANCHOR)
+        traffic = {panel.panel_id: panel for panel in panels}["traffic"]
+        rates.append(traffic.headline().value)
+
+    assert rates == sorted(rates)
+    assert rates[0] == pytest.approx(1 / 60)  # 1 request lẻ không được coi là đủ traffic
+
+
+def test_traffic_panel_needs_a_full_window_of_requests_to_pass(tmp_path: Path) -> None:
+    source = tmp_path / "one-per-minute.jsonl"
+    source.write_text(
+        "\n".join(
+            json.dumps({"ts": f"2026-01-01T{11 + (minute + 1) // 60:02d}:"
+                              f"{(minute + 1) % 60:02d}:00.000Z", "event": "request_received"})
+            for minute in range(60)
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _, panels, _, _ = build_dashboard(CONFIG, source, ANCHOR)
+    traffic = {panel.panel_id: panel for panel in panels}["traffic"]
+
+    assert traffic.headline().value == pytest.approx(1.0)
+    assert traffic.status == "ok"
 
 
 def test_errors_panel_rate_and_breakdown(dashboard) -> None:
@@ -302,6 +362,13 @@ def test_html_shows_time_range_and_refresh(dashboard) -> None:
     assert "2026-01-01T11:01:00Z → 2026-01-01T12:01:00Z" in html_text
     assert "60 phút gần nhất" in html_text
     assert f'<meta http-equiv="refresh" content="{refresh}">' in html_text
+
+
+def test_html_starts_with_doctype_then_charset(dashboard) -> None:
+    """Thiếu doctype là trình duyệt chuyển sang quirks mode, ảnh evidence sẽ lệch layout."""
+    html_text, _, _, _ = dashboard
+
+    assert html_text.startswith('<!doctype html>\n<meta charset="utf-8">\n<title>')
 
 
 def test_html_escapes_values_taken_from_the_log(dashboard) -> None:

@@ -46,12 +46,17 @@ message — tất cả đều bị thay bằng `[REDACTED_EMAIL]`, `[REDACTED_PH
 *(Lưu ý: `correlation_id` lúc test là `"MISSING"` và enrichment fields còn thiếu — đó là phần việc
 của P1, chưa hoàn thiện tại thời điểm P2 tự kiểm tra. Không ảnh hưởng tới `[PASSED] PII scrubbing`.)*
 
-## 5. Evidence cần đính kèm (ảnh chụp — tự chụp, xem hướng dẫn bên dưới)
+## 5. Evidence đính kèm
 
-- [ ] `evidence/p2-01-pii-input.png` — request có PII gửi vào `/chat`.
-- [ ] `evidence/p2-02-pii-redacted-log.png` — dòng log tương ứng trong `data/dev/p2.jsonl` đã `[REDACTED_*]`.
-- [ ] `evidence/p2-03-pytest.png` — output `pytest tests/test_pii.py tests/test_validate_logs.py -v` (8 passed).
-- [ ] `evidence/p2-04-validate-logs.png` — output `validate_logs.py` với `Potential PII leaks detected: 0` + `[PASSED] PII scrubbing`.
+- [x] `evidence/p2-02-pii-redacted-log.png` — dòng log `request_received` trong `data/dev/p2.jsonl` cho
+      thấy `message_preview` đã có `[REDACTED_EMAIL]`, `[REDACTED_PHONE_VN]`, `[REDACTED_CREDIT_CARD]`
+      (input gốc: email + sđt VN + thẻ 16 số + CCCD gửi qua `/chat`). Ảnh này tự chứng minh cả input
+      lẫn output nên thay luôn cho ảnh input riêng.
+- [x] `evidence/p2-03-pytest.png` — `pytest tests/test_pii.py tests/test_validate_logs.py -v` → 8 passed.
+- [x] `evidence/p2-04-validate-logs.png` — `validate_logs.py` chạy trên `data/dev/p2.jsonl`:
+      `Potential PII leaks detected: 0` + `+ [PASSED] PII scrubbing`
+      (điểm tổng 30/100 trong ảnh là do thiếu correlation ID/enrichment — phần của P1, không phải
+      phần PII của P2).
 
 ## 6. Rubric liên quan
 

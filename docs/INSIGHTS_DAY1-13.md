@@ -5,6 +5,190 @@
 
 ---
 
+## Day 01 — LLM API Exploration
+
+### 1. LLM là API bình thường — không có gì "ma thuật"
+- **Insight**: OpenAI/Anthropic/Gemini đều là REST API. Bạn chỉ cần gọi đúng endpoint, parse JSON, handle timeout.
+- **Production**: Tất cả LLM integration đều bắt đầu từ `requests.post()` + retry. Không cần wrapper phức tạp để bắt đầu.
+
+### 2. Temperature & Top_p kiểm soát sáng tạo
+- **Insight**: `temperature=0` → deterministic, `temperature=0.7` → creative. `top_p` ngăn tail distribution.
+- **Production**: Chatbot hỏi-đáp → `temperature=0`. Creative writing → `temperature=0.7-0.9`. Không bao giờ để `temperature=1.0` trong production.
+
+### 3. System prompt định hình persona
+- **Insight**: System prompt không phải "câu giới thiệu". Nó là **behavior contract** của model.
+- **Production**: Một system prompt tốt = role + constraints + output format + examples. Nên version control system prompt như code.
+
+### 4. Token counting = cost control
+- **Insight**: `tiktoken` đếm token trước khi gọi API. Biết trước chi phí, không bị shock hóa đơn.
+- **Production**: Mọi LLM call cần log `prompt_tokens`, `completion_tokens`, `cost_usd`. Đây là metric cơ bản của observability.
+
+### 5. Streaming + Retry = UX tốt
+- **Insight**: Streaming cho user thấy response ngay. Retry với backoff cho resilience.
+- **Production**: User chấp nhận delay nếu thấy progress. Retry phải có `max_retries`, `backoff_factor`, không retry mãi.
+
+---
+
+## Day 02 — Problem Definition
+
+### 1. Problem trước, AI sau
+- **Insight**: "Tìm đúng bài toán" quan trọng hơn "chọn đúng model". Workflow trước, AI sau.
+- **Production**: Nếu workflow chưa rõ, AI sẽ làm đúng thứ mà không ai cần. Problem Statement có người gặp vấn đề, điểm nghẽn, tác động.
+
+### 2. Metric phải đo trước/sau
+- **Insight**: Metric cần baseline (hiện trạng) và target (mục tiêu). "Nhanh hơn" không phải metric.
+- **Production**: Mọi thay đổi cần A/B test: trước = 5 phút, sau = 2 phút, cải thiện 60%. Con số thuyết phục hơn opinion.
+
+### 3. Boundary rõ ràng — biết việc không làm
+- **Insight**: AI được phép làm gì, phần nào cần người kiểm tra. Boundary không phải limitation, mà là **risk control**.
+- **Production**: Nếu AI được phép gửi email, nó cũng cần được giới hạn: chỉ gửi template đã duyệt, không tự soạn nội dung mới.
+
+### 4. Rule/Workflow/Agent — chọn đúng mức
+- **Insight**: Rule đơn giản hơn Agent, Workflow ở giữa. Không phải lúc nào cũng cần Agent.
+- **Production**: Nếu 3 if/else giải được bài toán → dùng Rule. Nếu cần gọi tool + suy luận → dùng Workflow/Agent.
+
+---
+
+## Day 03 — Chatbot vs ReAct Agent
+
+### 1. 4 cấp độ AI hội thoại
+- **Insight**: Rule-Based → LLM Chatbot → ReAct Agent → Autonomous Agent. Mỗi cấp thêm khả năng, thêm complexity.
+- **Production**: Bắt đầu từ cấp thấp nhất giải được bài toán. Không leo cấp nếu chưa cần.
+
+### 2. ReAct = Thought → Action → Observation
+- **Insight**: Agent không trả lời ngay. Nó **suy luận** (thought), **hành động** (action), **quan sát** (observation), rồi mới trả lời.
+- **Production**: Vòng lặp ReAct là pattern chuẩn cho tool-using agent. Prompt phải định hình rõ 3 bước này.
+
+### 3. Tool description = interface với model
+- **Insight**: Tên tool và mô tả quyết định routing. "Tên tool phản ánh đúng intent, mô tả nói rõ khi nào dùng/khi nào không".
+- **Production**: Tool description cần có: purpose, input schema, output schema, confirmation boundary. Đây là API contract cho LLM.
+
+### 4. Guardrail cho agent loop
+- **Insight**: Agent có thể lặp vô hạn. Cần `max_iterations` + timeout + fallback.
+- **Production**: Agent loop không bao giờ được chạy không giới hạn. Đặt `max_rounds=10` + `timeout=30s` + `fallback=human_escalation`.
+
+### 5. Hybrid Decision Flowchart
+- **Insight**: Không phải lúc nào cũng cần agent. Chatbot path cho câu hỏi đơn giản, ReAct path cho câu hỏi cần tool.
+- **Production**: Router đơn giản: "Câu này cần tool không?" → Nếu không → chatbot, Nếu có → agent. Tiết kiệm latency và cost.
+
+---
+
+## Day 04 — Prompt Engineering & Tool Calling
+
+### 1. Evidence-driven prompt optimization
+- **Insight**: Đổi prompt → chạy eval → đọc run JSON → sửa → chạy lại. Vòng lặp này quan trọng hơn prompt đẹp.
+- **Production**: Mọi prompt cần có version log: `v0`, `v1`, `v2`... Mỗi version ghi: changed artifact, hypothesis, metric before/after.
+
+### 2. Tool design là prompt engineering
+- **Insight**: Tên tool, mô tả, argument schema — tất cả đều ảnh hưởng routing. "Thiết kế tool cũng là prompt engineering".
+- **Production**: Tool bad naming → agent chọn sai tool. Tool description mơ hồ → agent nhầm args. Tool không có confirmation boundary → agent làm việc nguy hiểm.
+
+### 3. Eval case thiết kế kỹ = bug report chất lượng
+- **Insight**: Eval case cần có `failure_type`, `expect`, `metadata.what_it_tests`. Không phải "test xem agent có chạy không".
+- **Production**: Eval case = bug report. Nó mô tả: scenario, expected behavior, actual behavior, failure category. Dùng eval để đo improvement, không chỉ để pass.
+
+### 4. Versioning không chỉ là prompt
+- **Insight**: `artifact_version` + `prompt_hash` + `tools_hash` → biết chính xác đang chạy cái gì.
+- **Production**: Khi agent bị lỗi, bạn cần biết: prompt version nào? tools.yaml version nào? Chỉ có hash mới trả lời được.
+
+### 5. UI là deliverable, không phải bonus
+- **Insight**: "UI tốt không chỉ cần có chat. Cần thấy request/response, trace tool, transcript, artifact version".
+- **Production**: Debug UI = observability cho developer. Production cần dashboard tương tự: xem được từng tool call, latency, cost, error.
+
+---
+
+## Day 07 — Data Foundations
+
+### 1. Embedding chọn model phù hợp ngôn ngữ
+- **Insight**: `BAAI/bge-m3` multilingual tốt cho tiếng Việt. `all-MiniLM-L6-v2` nhẹ, nhanh.
+- **Production**: Model embedding là foundation của RAG. Chọn sai model → retrieval kém dù chunking tốt.
+
+### 2. Chunking strategy ảnh hưởng retrieval
+- **Insight**: `RecursiveCharacterTextSplitter` an toàn, `MarkdownHeaderTextSplitter` tốt cho heading rõ.
+- **Production**: Chunk size cần match context window của LLM. Overhead 10-20% cho cross-chunk information. Chunk nhỏ → precision cao, recall thấp.
+
+### 3. Vector store là single source of truth
+- **Insight**: ChromaDB lưu vector + metadata + document. Không cần database phức tạp cho RAG cơ bản.
+- **Production**: Vector store cần persist, backup, versioning. Metadata phải có `source`, `chunk_id`, `created_at` để debug.
+
+---
+
+## Day 08 — RAG Pipeline
+
+### 1. Hybrid search > Dense-only
+- **Insight**: Semantic search (dense) + BM25 (lexical) → merge → rerank. Mỗi loại bù weaknesses của loại kia.
+- **Production**: Dense search bắt synonym, lexical search bắt exact match. Hybrid cho kết quả tốt nhất.
+
+### 2. Reranking cải thiện precision
+- **Insight**: Cross-encoder reranker (Jina, Qwen) chấm lại relevance. Top-k sau rerank chính xác hơn.
+- **Production**: Rerank là lớp cuối trước LLM. Chi phí thấp, benefit cao. Luôn rerank top-20 → top-5.
+
+### 3. Vectorless fallback cho edge case
+- **Insight**: PageIndex (vectorless) làm fallback khi hybrid search không có kết quả đủ tốt.
+- **Production**: Retrieval không bao giờ 100% confident. Fallback strategy = "không tìm thấy" → "tìm theo cách khác" → "hỏi lại user".
+
+### 4. Citation = trust
+- **Insight**: Trả lời có citation `[Nguồn, Năm]`. Nếu không có evidence → "I cannot verify".
+- **Production**: Citation không phải optional. Nó là **trust mechanism** cho RAG. User cần biết câu trả lời dựa trên đâu.
+
+### 5. Document reordering tránh "lost in the middle"
+- **Insight**: LLM bỏ qua thông tin ở giữa context. Sắp xếp: quan trọng nhất ở đầu và cuối.
+- **Production**: Reorder chunks theo relevance + freshness. Pattern: `[1, 3, 5, 4, 2]` thay vì `[1, 2, 3, 4, 5]`.
+
+### 6. Evaluation pipeline bắt buộc
+- **Insight**: Golden dataset 15+ Q&A, metrics: Faithfulness, Answer Relevance, Context Recall, Context Precision.
+- **Production**: RAG không có eval = mù. Đo baseline → sau mỗi thay đổi → so sánh. A/B test reranking, chunking, embedding model.
+
+---
+
+## Day 09 — Multi-Agent (A2A)
+
+### 1. Coordinator + Workers pattern
+- **Insight**: Một agent điều phối, nhiều agent chuyên môn. Coordinator phân công, worker thực hiện, handoff bằng chứng.
+- **Production**: Phân việc theo domain: Order Agent, Payment Agent, Delivery Agent, Policy Agent. Mỗi agent chỉ truy cập data của mình.
+
+### 2. Handoff bằng evidence, không phải tin lời
+- **Insight**: Agent không gửi "kết luận" cho agent khác. Nó gửi **evidence IDs**: `order:123`, `payment:456`, `policy:SELLER_HANDOFF`.
+- **Production**: Evidence ID = stable reference. Không bị misinterpret khi agent đọc lại. Có thể verify từ source data.
+
+### 3. Policy-driven decision
+- **Insight**: `EC_POLICY_V2` là single source of truth. Agent áp dụng policy, không tự quyết.
+- **Production**: Business logic nên nằm ở policy layer, không phải trong agent prompt. Prompt chỉ định hướng, policy quyết chi tiết.
+
+### 4. Verifier agent trước khi output
+- **Insight**: Verifier kiểm tra ID, số tiền, null handling, array limit, schema trước khi ghi file.
+- **Production**: Output không được tin ngay. Verifier = unit test cho agent output. Schema validation + business rule validation.
+
+### 5. Trace chạy thật, không tự tạo
+- **Insight**: `trace.jsonl` ghi lại từng case thực tế. Không append, chỉ cần lượt chạy mới nhất.
+- **Production**: Agent trace cần có: input, thought, action, observation, output, latency, cost. Đây bằng chứng cho audit và improvement.
+
+---
+
+## Day 10 — Data Pipeline & Data Observability
+
+### 1. Raw artifact phải persist
+- **Insight**: Lưu raw response từ Crossref trước khi clean. Nếu clean sai, có thể rollback về raw.
+- **Production**: Data lineage: raw → clean → embedding → index. Mỗi stage đều có artifact. Không bao giờ overwrite raw data.
+
+### 2. Corruption flow = controlled failure
+- **Insight**: Tạo lỗi chủ đích (thiếu record, summary rỗng, duplicate, ngày cũ) để đo ảnh hưởng.
+- **Production**: Chaos engineering cho data. Nếu bạn không biết data corruption làm hỏng agent như thế nào, bạn chưa sẵn sàng production.
+
+### 3. Data quality metrics
+- **Insight**: `missing_rate`, `duplicate_rate`, `freshness_hours`, `null_summary_rate`. Đo baseline → corrupt → repair.
+- **Production**: Data quality report phải có: threshold, current value, trend, alert. Giống metrics cho application.
+
+### 4. Repair từ raw, không từ corrupted
+- **Insight**: Khi data lỗi, repair từ raw artifact, không cố patch corrupted data.
+- **Production**: Immutable raw data + idempotent pipeline = reproducible results. Nếu pipeline chạy 2 lần cho kết quả khác nhau → bug.
+
+### 5. So sánh 3 trạng thái
+- **Insight**: Baseline (sạch) vs Corrupted (lỗi) vs Repaired (sửa). Cùng eval set, cùng metric.
+- **Production**: Trước khi claim "pipeline improved", chạy eval trên baseline. Sau khi claim "bug fixed", chạy lại baseline để confirm.
+
+---
+
 ## Day 11 — Controlled Agent Security
 
 ### 1. Source ≠ Instruction
@@ -120,35 +304,41 @@
 ## Combined: Kiến trúc Production-ready AI API
 
 ```
-Day 12: Build RIGHT → deploy RIGHT → scale RIGHT
-Day 13: See EVERYTHING → debug FAST → prevent RECURRENCE
+Day 1-4:  Understand LLM → Design problem → Build agent → Optimize prompt
+Day 7-10: Data foundations → RAG pipeline → Multi-agent coordination → Data quality
+Day 11-13: Security → Deployment → Observability
 ```
 
 ### Checklist theo level
 
 | Level | Pattern | Day |
 |-------|---------|-----|
-| **MVP** | 12-Factor config + Bearer token + Rate limit + Correlation ID + PII scrub | 12, 13 |
-| **Production** | Docker + CI/CD + Redis state + Graceful shutdown + Langfuse traces + Prompt versioning + Dashboard + SLO + Alert | 12, 13 |
-| **Enterprise** | Prometheus + Grafana + Jaeger/OTel + ELK/Loki + per-model budget + Chaos Engineering + PII SDK-level + Multi-region | 12, 13 |
+| **MVP** | LLM API + System prompt + Token counting + ReAct + Eval-driven + 12-Factor + Bearer + Correlation ID | 1, 3, 4, 12, 13 |
+| **Production** | Streaming + Retry + Problem statement + Tool design + RAG hybrid + Multi-agent + Docker + CI/CD + Structured logging + PII scrub + Metrics + Traces + Prompt versioning | 1-13 |
+| **Enterprise** | A/B testing + Guardrails + Egress allowlist + HITL + Cost guard + Graceful shutdown + SLO + Alert + Chaos Engineering + Data quality pipeline + Evidence-driven | 10-13 |
 
 ### Mindset đáng nhớ
 
-1. **Config ≠ Code** — Cùng image, nhiều môi trường
-2. **Fail fast** — Thiếu secret → không khởi động
-3. **Defense in depth** — 3 lớp bảo vệ, mỗi lớp trả lời 1 câu hỏi
-4. **Statelessness** — State ngoài process, scale ngang không giới hạn
-5. **Graceful degradation** — App chạy được cả khi dependency fail
-6. **Correlation ID là backbone** — Trace ngược từ user complaint đến root cause
-7. **Log là data** — JSON, queryable, alertable
-8. **Percentile > Average** — Thấy tail latency
-9. **Evidence > Opinion** — Mọi claim kèm trace ID/log line
+1. **Problem trước, AI sau** — Đừng giải bài toán không có
+2. **Config ≠ Code** — Cùng image, nhiều môi trường
+3. **Fail fast** — Thiếu secret → không khởi động
+4. **Defense in depth** — 3 lớp bảo vệ, mỗi lớp trả lời 1 câu hỏi
+5. **Evidence > Opinion** — Mọi claim kèm data
+6. **Statelessness** — State ngoài process, scale ngang
+7. **Trace ngược được** — Correlation ID từ user complaint đến root cause
+8. **Log là data** — JSON, queryable, alertable
+9. **Percentile > Average** — Thấy tail latency
 10. **Automate everything** — Test, build, deploy, evidence — đều automated
+11. **Tool description = interface** — Thiết kế tool cũng là prompt engineering
+12. **RAG cần eval** — Golden dataset + metrics + A/B test
+13. **Multi-agent cần handoff** — Evidence-based, không tin lời
+14. **Data quality > Model quality** — Garbage in, garbage out
+15. **Red team trước khi ship** — Tự break nó trước khi attacker break nó
 
 ---
 
 ## Ghi chú
 
-- File này tổng hợp từ Day 11 (`Day11_2A202601044_TranChiVu`), Day 12 (`K4-Day12-2A202601044-TranChiVu`), Day 13 (`Day13-K4-2A202601274`).
-- Các ngày khác (Day 1-10) cần bổ sung sau khi có đầy đủ repo.
+- File này tổng hợp từ tất cả repo Day 1-13 trên GitHub của bạn.
 - Mỗi insight đều có code example thật trong các repo tương ứng.
+- Dùng file này làm cheat sheet khi build sản phẩm thật.

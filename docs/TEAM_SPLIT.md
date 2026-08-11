@@ -9,13 +9,26 @@ Tài liệu này chia việc của Day 13 cho **5 thành viên** dựa trên [RE
 > (P1 = ngữ cảnh request, P2 = đường ống log & PII). Khi điền `submission/REPORT.md` mục 1,
 > vẫn khai đúng **4 vai trò** như bảng dưới.
 
-| Người | Vai trò chính thức (theo README) | Câu một dòng |
-|---|---|---|
-| **P1** | Logging & PII | Correlation ID + request context |
-| **P2** | Logging & PII | PII redaction + log pipeline/schema |
-| **P3** | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback |
-| **P4** | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert, runbook |
-| **P5** | Incident, Report & Demo | Challenge, report, evidence, release, demo |
+| Mã | Thành viên | MSSV | Vai trò chính thức (theo README) | Câu một dòng |
+|---|---|---|---|---|
+| **P1** | Đỗ Thu Liễu | 2A202601898 | Logging & PII | Correlation ID + request context |
+| **P2** | Đỗ Văn Linh | 2A202601190 | Logging & PII | PII redaction + log pipeline/schema |
+| **P3** | Nguyễn Thanh Bình *(lead)* | 2A202601274 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback |
+| **P4** | Trịnh Hải Đăng | 2A202601602 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert, runbook |
+| **P5** | Trần Chí Vũ | 2A202601044 | Incident, Report & Demo | Challenge, report, evidence, release, demo |
+
+**Lead giữ P3, không giữ P5 — cần tách rõ hai việc:**
+
+- **Bình (lead, P3)** chủ trì kickoff và 3 gate T+90 / T+150 / T+210: gọi giờ, xác nhận từng người
+  đạt Definition of done, quyết định khi có tranh chấp. Đây là vai trò *điều phối*.
+- **Vũ (P5)** là **release owner**: người duy nhất ghi `submission/REPORT.md`, sinh `data/logs.jsonl`,
+  chạy challenge và commit bài nộp cuối. Đây là vai trò *thực thi*.
+
+Hai người này phải ngồi cạnh nhau ở T+150 và T+210. P5 là phần nặng nhất về điều phối trong 90 phút
+cuối, nên lead cần trực tiếp gánh cùng Vũ ở Gate 2 và Gate 3 thay vì chỉ theo dõi.
+
+Bình cũng cần **lấy key Langfuse ngay phút đầu** — P3 là phần duy nhất phụ thuộc dịch vụ ngoài;
+nếu key về muộn, cả phần trace lẫn nhịp gate đều trễ theo.
 
 ---
 
@@ -57,11 +70,11 @@ Không ai làm hỏng log của ai.
 
 | Người | Port | `LOG_PATH` riêng khi dev |
 |---|---|---|
-| P1 | 8001 | `data/dev/p1.jsonl` |
-| P2 | 8002 | `data/dev/p2.jsonl` |
-| P3 | 8003 | `data/dev/p3.jsonl` |
-| P4 | 8004 | `data/dev/p4.jsonl` |
-| P5 | **8000** | `data/logs.jsonl` ← **canonical** |
+| P1 · Liễu | 8001 | `data/dev/p1.jsonl` |
+| P2 · Linh | 8002 | `data/dev/p2.jsonl` |
+| P3 · Bình | 8003 | `data/dev/p3.jsonl` |
+| P4 · Đăng | 8004 | `data/dev/p4.jsonl` |
+| P5 · Vũ | **8000** | `data/logs.jsonl` ← **canonical** |
 
 Mỗi người tạo `.env.local` của mình (đã bị `.gitignore` chặn qua `.env`? **chưa** — P5 thêm
 `.env.local` và `data/dev/` vào `.gitignore` ngay ở phút đầu):
@@ -83,7 +96,13 @@ lấy evidence.
 
 ### 1.4 Nhánh Git riêng, commit riêng
 
-`feat/p1-correlation`, `feat/p2-pii`, `feat/p3-prompt-version`, `feat/p4-dashboard`, `feat/p5-incident-report`.
+| Mã | Thành viên | Nhánh |
+|---|---|---|
+| P1 | Liễu | `feat/p1-lieu-correlation` |
+| P2 | Linh | `feat/p2-linh-pii` |
+| P3 | Bình | `feat/p3-binh-prompt-version` |
+| P4 | Đăng | `feat/p4-dang-dashboard` |
+| P5 | Vũ | `feat/p5-vu-incident-report` |
 
 Đây không chỉ là chống conflict: RUBRIC mục **B2 (20 điểm cá nhân)** yêu cầu *"commit/PR cụ thể và có
 thể kiểm tra"*, khớp với phần khai trong report. Ai commit chung vào một nhánh sẽ mất điểm này.
@@ -92,7 +111,7 @@ thể kiểm tra"*, khớp với phần khai trong report. Ai commit chung vào 
 
 ## 2. Chi tiết từng người
 
-### P1 — Correlation ID & Request Context *(vai trò: Logging & PII)*
+### P1 · Đỗ Thu Liễu — Correlation ID & Request Context *(vai trò: Logging & PII)*
 
 **Mục tiêu:** mọi log của một request đều truy ngược được về một ID duy nhất.
 
@@ -118,7 +137,7 @@ thì P4 và P5 có dữ liệu thật sớm hơn, nên P1 nên là người kh�
 
 ---
 
-### P2 — PII Redaction & Log Pipeline *(vai trò: Logging & PII)*
+### P2 · Đỗ Văn Linh — PII Redaction & Log Pipeline *(vai trò: Logging & PII)*
 
 **Mục tiêu:** không một dòng log nào chứa PII nguyên văn.
 
@@ -149,7 +168,7 @@ thì P4 và P5 có dữ liệu thật sớm hơn, nên P1 nên là người kh�
 
 ---
 
-### P3 — Tracing & Prompt Version *(vai trò: Tracing & Prompt Version)*
+### P3 · Nguyễn Thanh Bình *(lead)* — Tracing & Prompt Version
 
 **Mục tiêu:** ≥10 trace có metadata, 2 phiên bản prompt, chứng minh được rollback.
 
@@ -178,7 +197,7 @@ kèm label/version · ảnh trước/sau rollback.
 
 ---
 
-### P4 — Dashboard, SLO & Alert *(vai trò: Dashboard, SLO & Alert)*
+### P4 · Trịnh Hải Đăng — Dashboard, SLO & Alert
 
 **Mục tiêu:** 6 panel đúng contract + SLO + 3 alert có runbook.
 
@@ -210,7 +229,7 @@ chỉ là ảnh chụp cuối, và P4 tự sinh được dữ liệu dev của m
 
 ---
 
-### P5 — Incident, Report, Demo & Release *(vai trò: Incident, Report & Demo)*
+### P5 · Trần Chí Vũ — Incident, Report, Demo & Release
 
 **Mục tiêu:** nối được Metrics → Traces → Logs thành một câu chuyện có bằng chứng, và nộp bài sạch.
 
@@ -290,15 +309,15 @@ Ba gate đều là **hẹn giờ cố định**, không phải "chờ người k
 
 ---
 
-## 5. Checklist trước khi nộp *(P5 chủ trì, mỗi người tự xác nhận dòng của mình)*
+## 5. Checklist trước khi nộp *(Vũ thực thi, Bình chốt từng dòng)*
 
-- [ ] **P1** — `validate_logs.py`: PASSED correlation ID + PASSED enrichment
-- [ ] **P2** — `validate_logs.py`: `Potential PII leaks detected: 0`
-- [ ] **P1+P2** — điểm tổng `validate_logs.py` ≥ 80/100
-- [ ] **P3** — ≥10 trace, 2 prompt version, 1 bằng chứng rollback
-- [ ] **P4** — `validate_dashboard.py` báo `6/6 panel`, không còn `TODO` trong `config/`
-- [ ] **P5** — challenge đã chạy, root cause có trace ID **và** log line làm bằng chứng
-- [ ] **P5** — `python -m pytest -q` xanh
-- [ ] **P5** — `git status --short` sạch, không có `.env`, key, `.venv/`, log chứa PII
-- [ ] **P5** — REPORT.md mục 7 khai đúng commit/PR của từng người (RUBRIC B2 = 20 điểm cá nhân)
-- [ ] **Cả nhóm** — mỗi người giải thích được phần mình làm (RUBRIC A3 + B1)
+- [ ] **P1 · Liễu** — `validate_logs.py`: PASSED correlation ID + PASSED enrichment
+- [ ] **P2 · Linh** — `validate_logs.py`: `Potential PII leaks detected: 0`
+- [ ] **P1 + P2 · Liễu & Linh** — điểm tổng `validate_logs.py` ≥ 80/100
+- [ ] **P3 · Bình** — ≥10 trace, 2 prompt version, 1 bằng chứng rollback
+- [ ] **P4 · Đăng** — `validate_dashboard.py` báo `6/6 panel`, không còn `TODO` trong `config/`
+- [ ] **P5 · Vũ** — challenge đã chạy, root cause có trace ID **và** log line làm bằng chứng
+- [ ] **P5 · Vũ** — `python -m pytest -q` xanh
+- [ ] **P5 · Vũ** — `git status --short` sạch, không có `.env`, key, `.venv/`, log chứa PII
+- [ ] **P5 · Vũ** — REPORT.md mục 7 khai đúng commit/PR của từng người (RUBRIC B2 = 20 điểm cá nhân)
+- [ ] **Bình (lead)** — mỗi người giải thích được phần mình làm (RUBRIC A3 + B1)

@@ -3,12 +3,29 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
+from structlog.contextvars import get_contextvars
+
 from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
 from .pii import hash_user_id, summarize_text
 from .prompt_management import resolve_prompt
 from .tracing import get_langfuse_client, observe, tracing_enabled
+
+UNKNOWN_CORRELATION_ID = "unknown"
+
+
+def current_correlation_id() -> str:
+    """Lấy correlation ID mà middleware của P1 đã bind vào structlog contextvars.
+
+    Đây là mắt xích nối Traces → Logs: có ID này trên trace thì mới grep ngược được
+    đúng request trong `data/logs.jsonl`. Trả về "unknown" khi agent được gọi ngoài
+    HTTP request (unit test, script) thay vì raise — telemetry không được chặn luồng chính.
+    """
+    correlation_id = get_contextvars().get("correlation_id")
+    if not correlation_id or correlation_id == "MISSING":
+        return UNKNOWN_CORRELATION_ID
+    return str(correlation_id)
 
 
 @dataclass
@@ -29,6 +46,7 @@ class LabAgent:
     @observe(as_type="generation", capture_input=False, capture_output=False)
     def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
         started = time.perf_counter()
+        correlation_id = current_correlation_id()
         docs = retrieve(message)
         langfuse_client = get_langfuse_client()
         prompt = resolve_prompt(
@@ -46,7 +64,10 @@ class LabAgent:
         langfuse_client.update_current_trace(
             user_id=hash_user_id(user_id),
             session_id=session_id,
-            tags=["lab", feature, self.model],
+            # Tag `cid:` để search ngược từ Langfuse về log. Correlation ID cố tình
+            # KHÔNG đặt trong `metadata` vì public test khẳng định metadata của trace
+            # chỉ chứa đúng 4 field prompt.
+            tags=["lab", feature, self.model, f"cid:{correlation_id}"],
             metadata={
                 "prompt_name": prompt.name,
                 "prompt_label": prompt.label,
@@ -57,6 +78,7 @@ class LabAgent:
         langfuse_client.update_current_generation(
             model=self.model,
             metadata={
+                "correlation_id": correlation_id,
                 "doc_count": len(docs),
                 "query_preview": summarize_text(message),
                 "prompt_name": prompt.name,

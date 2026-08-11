@@ -65,4 +65,4 @@ của P1, chưa hoàn thiện tại thời điểm P2 tự kiểm tra. Không �
 ## 7. Commit
 
 Nhánh: `feat/p2-pii`
-Commit: xem `git log feat/p2-pii` — điền SHA sau khi commit xong.
+Commit: `a734f7a` — feat(p2): PII scrubbing toàn record + passport/address_vn patterns

@@ -9,13 +9,13 @@ Tài liệu này chia việc của Day 13 cho **5 thành viên** dựa trên [RE
 > (P1 = ngữ cảnh request, P2 = đường ống log & PII). Khi điền `submission/REPORT.md` mục 1,
 > vẫn khai đúng **4 vai trò** như bảng dưới.
 
-| Mã | Thành viên | MSSV | Vai trò chính thức (theo README) | Câu một dòng |
-|---|---|---|---|---|
-| **P1** | Đỗ Thu Liễu | 2A202601898 | Logging & PII | Correlation ID + request context |
-| **P2** | Đỗ Văn Linh | 2A202601190 | Logging & PII | PII redaction + log pipeline/schema |
-| **P3** | Nguyễn Thanh Bình *(lead)* | 2A202601274 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback |
-| **P4** | Trịnh Hải Đăng | 2A202601602 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert, runbook |
-| **P5** | Trần Chí Vũ | 2A202601044 | Incident, Report & Demo | Challenge, report, evidence, release, demo |
+| Mã          | Thành viên                | MSSV        | Vai trò chính thức (theo README) | Câu một dòng                            |
+| ------------ | --------------------------- | ----------- | ----------------------------------- | ------------------------------------------ |
+| **P1** | Đỗ Văn Linh              | 2A202601190 | Logging & PII                       | Correlation ID + request context           |
+| **P2** | Đỗ Thu Liễu              | 2A202601898 | Logging & PII                       | PII redaction + log pipeline/schema        |
+| **P3** | Nguyễn Thanh Bình*(lead)* | 2A202601274 | Tracing & Prompt Version            | Traces, prompt v1/v2, label & rollback     |
+| **P4** | Trịnh Hải Đăng          | 2A202601602 | Dashboard, SLO & Alert              | 6 panel, threshold, SLO, alert, runbook    |
+| **P5** | Trần Chí Vũ              | 2A202601044 | Incident, Report & Demo             | Challenge, report, evidence, release, demo |
 
 **Lead giữ P3, không giữ P5 — cần tách rõ hai việc:**
 
@@ -39,12 +39,12 @@ nếu key về muộn, cả phần trace lẫn nhịp gate đều trễ theo.
 Mọi file trong repo có **đúng một người được sửa**. Ai cần thay đổi file của người khác thì nhắn,
 không tự sửa. Nhờ vậy 5 nhánh Git merge được theo thứ tự bất kỳ mà không xung đột.
 
-| Người | File được ghi (exclusive) |
-|---|---|
-| **P1** | [app/middleware.py](../app/middleware.py), [app/main.py](../app/main.py), [tests/test_chat_observability.py](../tests/test_chat_observability.py) |
-| **P2** | [app/pii.py](../app/pii.py), [app/logging_config.py](../app/logging_config.py), [config/logging_schema.json](../config/logging_schema.json), [tests/test_pii.py](../tests/test_pii.py), [tests/test_validate_logs.py](../tests/test_validate_logs.py) |
-| **P3** | [app/tracing.py](../app/tracing.py), [app/agent.py](../app/agent.py), [app/prompt_management.py](../app/prompt_management.py), [tests/test_agent_prompt_trace.py](../tests/test_agent_prompt_trace.py), [tests/test_prompt_management.py](../tests/test_prompt_management.py), [tests/test_tracing_adapter.py](../tests/test_tracing_adapter.py) |
-| **P4** | [config/dashboard.yaml](../config/dashboard.yaml), [config/slo.yaml](../config/slo.yaml), [config/alert_rules.yaml](../config/alert_rules.yaml), [docs/alerts.md](alerts.md), [docs/dashboard-spec.md](dashboard-spec.md), `scripts/dashboard_app.py` *(file mới)*, [tests/test_dashboard_validator.py](../tests/test_dashboard_validator.py) |
+| Người      | File được ghi (exclusive)                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P1** | [app/middleware.py](../app/middleware.py), [app/main.py](../app/main.py), [tests/test_chat_observability.py](../tests/test_chat_observability.py)                                                                                                                                                                                                                                                                   |
+| **P2** | [app/pii.py](../app/pii.py), [app/logging_config.py](../app/logging_config.py), [config/logging_schema.json](../config/logging_schema.json), [tests/test_pii.py](../tests/test_pii.py), [tests/test_validate_logs.py](../tests/test_validate_logs.py)                                                                                                                                                                 |
+| **P3** | [app/tracing.py](../app/tracing.py), [app/agent.py](../app/agent.py), [app/prompt_management.py](../app/prompt_management.py), [tests/test_agent_prompt_trace.py](../tests/test_agent_prompt_trace.py), [tests/test_prompt_management.py](../tests/test_prompt_management.py), [tests/test_tracing_adapter.py](../tests/test_tracing_adapter.py), `scripts/seed_prompts.py` *(file mới)*                                |
+| **P4** | [config/dashboard.yaml](../config/dashboard.yaml), [config/slo.yaml](../config/slo.yaml), [config/alert_rules.yaml](../config/alert_rules.yaml), [docs/alerts.md](alerts.md), [docs/dashboard-spec.md](dashboard-spec.md), `scripts/dashboard_app.py` *(file mới)*, [tests/test_dashboard_validator.py](../tests/test_dashboard_validator.py)                                                                     |
 | **P5** | [scripts/load_test.py](../scripts/load_test.py), [scripts/inject_incident.py](../scripts/inject_incident.py), [scripts/validate_logs.py](../scripts/validate_logs.py), [scripts/validate_dashboard.py](../scripts/validate_dashboard.py), [submission/REPORT.md](../submission/REPORT.md), `submission/evidence/**`, [.gitignore](../.gitignore), [tests/test_challenge_config.py](../tests/test_challenge_config.py) |
 
 **Read-only cho cả nhóm:** `config/challenge.json` (RULES cấm sửa), `app/mock_llm.py`, `app/mock_rag.py`,
@@ -68,13 +68,13 @@ P5 gom vào REPORT.md ở phút 210. Không ai phải chờ P5, và P5 không ph
 App ghi log ra đường dẫn lấy từ biến `LOG_PATH`, nên mỗi người chạy instance riêng, ghi log riêng.
 Không ai làm hỏng log của ai.
 
-| Người | Port | `LOG_PATH` riêng khi dev |
-|---|---|---|
-| P1 · Liễu | 8001 | `data/dev/p1.jsonl` |
-| P2 · Linh | 8002 | `data/dev/p2.jsonl` |
-| P3 · Bình | 8003 | `data/dev/p3.jsonl` |
-| P4 · Đăng | 8004 | `data/dev/p4.jsonl` |
-| P5 · Vũ | **8000** | `data/logs.jsonl` ← **canonical** |
+| Người      | Port           | `LOG_PATH` riêng khi dev                |
+| ------------ | -------------- | ------------------------------------------ |
+| P1 · Linh   | 8001           | `data/dev/p1.jsonl`                      |
+| P2 · Liễu  | 8002           | `data/dev/p2.jsonl`                      |
+| P3 · Bình  | 8003           | `data/dev/p3.jsonl`                      |
+| P4 · Đăng | 8004           | `data/dev/p4.jsonl`                      |
+| P5 · Vũ    | **8000** | `data/logs.jsonl` ← **canonical** |
 
 Mỗi người tạo `.env.local` của mình (đã bị `.gitignore` chặn qua `.env`? **chưa** — P5 thêm
 `.env.local` và `data/dev/` vào `.gitignore` ngay ở phút đầu):
@@ -96,13 +96,13 @@ lấy evidence.
 
 ### 1.4 Nhánh Git riêng, commit riêng
 
-| Mã | Thành viên | Nhánh |
-|---|---|---|
-| P1 | Liễu | `feat/p1-lieu-correlation` |
-| P2 | Linh | `feat/p2-linh-pii` |
-| P3 | Bình | `feat/p3-binh-prompt-version` |
-| P4 | Đăng | `feat/p4-dang-dashboard` |
-| P5 | Vũ | `feat/p5-vu-incident-report` |
+| Mã | Thành viên | Nhánh                          |
+| --- | ------------ | ------------------------------- |
+| P1  | Linh         | `feat/p1-linh-correlation`    |
+| P2  | Liễu        | `feat/p2-lieu-pii`            |
+| P3  | Bình        | `feat/p3-binh-prompt-version` |
+| P4  | Đăng       | `feat/p4-dang-dashboard`      |
+| P5  | Vũ          | `feat/p5-vu-incident-report`  |
 
 Đây không chỉ là chống conflict: RUBRIC mục **B2 (20 điểm cá nhân)** yêu cầu *"commit/PR cụ thể và có
 thể kiểm tra"*, khớp với phần khai trong report. Ai commit chung vào một nhánh sẽ mất điểm này.
@@ -111,11 +111,12 @@ thể kiểm tra"*, khớp với phần khai trong report. Ai commit chung vào 
 
 ## 2. Chi tiết từng người
 
-### P1 · Đỗ Thu Liễu — Correlation ID & Request Context *(vai trò: Logging & PII)*
+### P1 · Đỗ Văn Linh — Correlation ID & Request Context *(vai trò: Logging & PII)*
 
 **Mục tiêu:** mọi log của một request đều truy ngược được về một ID duy nhất.
 
 **Việc:**
+
 1. [app/middleware.py](../app/middleware.py) — 4 khối TODO: `clear_contextvars()`, đọc header
    `x-request-id` hoặc sinh mới dạng `req-<8 hex>`, `bind_contextvars(correlation_id=...)`,
    trả `x-request-id` + `x-response-time-ms` trong response header.
@@ -137,11 +138,12 @@ thì P4 và P5 có dữ liệu thật sớm hơn, nên P1 nên là người kh�
 
 ---
 
-### P2 · Đỗ Văn Linh — PII Redaction & Log Pipeline *(vai trò: Logging & PII)*
+### P2 · Đỗ Thu Liễu — PII Redaction & Log Pipeline *(vai trò: Logging & PII)*
 
 **Mục tiêu:** không một dòng log nào chứa PII nguyên văn.
 
 **Việc:**
+
 1. [app/logging_config.py](../app/logging_config.py#L45) — TODO: đăng ký `scrub_event` vào chuỗi
    processor. **Đặt trước `JsonlFileProcessor()`**, nếu không PII vẫn được ghi xuống file trước khi bị che.
 2. [app/pii.py](../app/pii.py#L11) — thêm pattern (passport, từ khóa địa chỉ VN…). Kiểm chéo với
@@ -173,6 +175,7 @@ thì P4 và P5 có dữ liệu thật sớm hơn, nên P1 nên là người kh�
 **Mục tiêu:** ≥10 trace có metadata, 2 phiên bản prompt, chứng minh được rollback.
 
 **Việc:**
+
 1. Cấu hình Langfuse (`LANGFUSE_*` trong `.env`) và xác minh `/health` trả `tracing_enabled: true`.
 2. Tạo prompt `day13-chat` trên Langfuse theo [docs/PROMPT_VERSIONING.md](PROMPT_VERSIONING.md):
    v1 gắn label `baseline` + `production`; v2 (đổi nhỏ về format) gắn label `candidate`.
@@ -202,6 +205,7 @@ kèm label/version · ảnh trước/sau rollback.
 **Mục tiêu:** 6 panel đúng contract + SLO + 3 alert có runbook.
 
 **Việc:**
+
 1. Chạy `python scripts/validate_dashboard.py` ngay để hiểu contract; giữ nguyên
    [config/dashboard.yaml](../config/dashboard.yaml) trừ khi có lý do — mục tiêu là `HỢP LỆ: 6/6 panel`.
 2. Dựng dashboard thật (Streamlit/notebook/Grafana) đọc từ một file jsonl. **Nhận đường dẫn qua
@@ -234,6 +238,7 @@ chỉ là ảnh chụp cuối, và P4 tự sinh được dữ liệu dev của m
 **Mục tiêu:** nối được Metrics → Traces → Logs thành một câu chuyện có bằng chứng, và nộp bài sạch.
 
 **Việc theo thứ tự thời gian:**
+
 1. **T+0 (không chờ ai):** thêm `data/dev/` và `.env.local` vào [.gitignore](../.gitignore);
    thêm `--base-url` cho [scripts/load_test.py](../scripts/load_test.py) để 4 người kia dùng port riêng;
    tạo khung thư mục `submission/evidence/` và đặt quy ước tên file
@@ -298,22 +303,22 @@ Ba gate đều là **hẹn giờ cố định**, không phải "chờ người k
 
 ## 4. Ma trận phụ thuộc — và cách đã gỡ
 
-| Phụ thuộc tự nhiên | Nguy cơ | Cách gỡ trong bản phân công này |
-|---|---|---|
-| Log cần correlation ID (P1) trước khi validate được | P2/P4/P5 ngồi chờ P1 | P2 test bằng unit test thuần; P4 dev trên dữ liệu riêng; P5 chạy practice incident bằng code baseline |
-| Dashboard cần `data/logs.jsonl` đầy đủ | P4 chờ đến cuối buổi | Dashboard nhận **đường dẫn tham số**; dev trên `data/dev/p4.jsonl`, cuối buổi đổi 1 dòng |
-| Ai cũng chạy app → ghi đè log của nhau | Evidence bị nhiễu, phải chạy lại | Mỗi người 1 port + 1 `LOG_PATH`; `data/logs.jsonl` chỉ P5 ghi |
-| Cả nhóm cùng sửa REPORT.md | Merge conflict lúc gấp nhất | P5 là người ghi duy nhất; người khác nộp `pN-notes.md` |
-| Challenge cần cả logging + tracing + dashboard | Kẹt cứng ở phút 150 | Gate 1 ở T+90 bảo đảm baseline sẵn sàng trước 60 phút |
-| Langfuse key cấp chậm | P3 mất cả buổi | P3 có phương án Docker local trong SETUP.md; phần log/dashboard vẫn chạy không cần key |
+| Phụ thuộc tự nhiên                                    | Nguy cơ                              | Cách gỡ trong bản phân công này                                                                         |
+| --------------------------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Log cần correlation ID (P1) trước khi validate được | P2/P4/P5 ngồi chờ P1                | P2 test bằng unit test thuần; P4 dev trên dữ liệu riêng; P5 chạy practice incident bằng code baseline |
+| Dashboard cần`data/logs.jsonl` đầy đủ              | P4 chờ đến cuối buổi             | Dashboard nhận**đường dẫn tham số**; dev trên `data/dev/p4.jsonl`, cuối buổi đổi 1 dòng   |
+| Ai cũng chạy app → ghi đè log của nhau              | Evidence bị nhiễu, phải chạy lại | Mỗi người 1 port + 1`LOG_PATH`; `data/logs.jsonl` chỉ P5 ghi                                          |
+| Cả nhóm cùng sửa REPORT.md                            | Merge conflict lúc gấp nhất        | P5 là người ghi duy nhất; người khác nộp`pN-notes.md`                                               |
+| Challenge cần cả logging + tracing + dashboard          | Kẹt cứng ở phút 150               | Gate 1 ở T+90 bảo đảm baseline sẵn sàng trước 60 phút                                                |
+| Langfuse key cấp chậm                                   | P3 mất cả buổi                     | P3 có phương án Docker local trong SETUP.md; phần log/dashboard vẫn chạy không cần key               |
 
 ---
 
 ## 5. Checklist trước khi nộp *(Vũ thực thi, Bình chốt từng dòng)*
 
-- [ ] **P1 · Liễu** — `validate_logs.py`: PASSED correlation ID + PASSED enrichment
-- [ ] **P2 · Linh** — `validate_logs.py`: `Potential PII leaks detected: 0`
-- [ ] **P1 + P2 · Liễu & Linh** — điểm tổng `validate_logs.py` ≥ 80/100
+- [ ] **P1 · Linh** — `validate_logs.py`: PASSED correlation ID + PASSED enrichment
+- [ ] **P2 · Liễu** — `validate_logs.py`: `Potential PII leaks detected: 0`
+- [ ] **P1 + P2 · Linh & Liễu** — điểm tổng `validate_logs.py` ≥ 80/100
 - [ ] **P3 · Bình** — ≥10 trace, 2 prompt version, 1 bằng chứng rollback
 - [ ] **P4 · Đăng** — `validate_dashboard.py` báo `6/6 panel`, không còn `TODO` trong `config/`
 - [ ] **P5 · Vũ** — challenge đã chạy, root cause có trace ID **và** log line làm bằng chứng

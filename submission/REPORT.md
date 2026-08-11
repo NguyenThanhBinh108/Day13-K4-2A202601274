@@ -3,25 +3,28 @@
 ## 1. Thông tin nhóm
 
 - Tên nhóm: K4-2A202601274
-- Repository URL: https://github.com/<org>/Day13-K4-2A202601274
-- Commit SHA cuối: `git rev-parse HEAD` (chạy ở phút 210)
+- Repository URL: https://github.com/NguyenThanhBinh108/Day13-K4-2A202601274
+- Commit SHA cuối: `e5af6ea` (cập nhật sau khi merge P1, P2, P3)
 - Thành viên và vai trò:
 
-| Thành viên | Vai trò | Phạm vi chính | File sở hữu |
-|---|---|---|---|
-| P1 | Logging & PII | Correlation ID + request context | `app/middleware.py`, `app/main.py` |
-| P2 | Logging & PII | PII redaction + log pipeline/schema | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` |
-| P3 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` |
-| P4 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert, runbook | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml` |
-| P5 | Incident, Report, Demo & Release | Challenge, report, evidence, release, demo | `scripts/`, `submission/`, `.gitignore` |
+| Thành viên | MSSV | Vai trò | Phạm vi | File sở hữu |
+|---|---|---|---|---|
+| Đỗ Văn Linh | 2A202601190 | Logging & PII | Correlation ID, request context, log enrichment | `app/middleware.py`, `app/main.py` |
+| Đỗ Thu Liễu | 2A202601898 | Logging & PII | PII redaction, log pipeline, logging schema | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` |
+| Nguyễn Thanh Bình (lead) | 2A202601274 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` |
+| Trịnh Hải Đăng | 2A202601602 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert rules, runbook | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml` |
+| Trần Chí Vũ | 2A202601044 | Incident, Report & Demo | Challenge, evidence, release, demo | `scripts/`, `submission/`, `.gitignore` |
+
+Nhóm có 5 thành viên trên 4 vai trò: vai trò `Logging & PII` do Linh và Liễu đồng đảm nhiệm,
+tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ---
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`: **<điền sau khi chạy baseline>**
-- Tổng số traces: **<điền sau khi P3 chạy xong>**
-- Số PII leak còn lại: **0** (mục tiêu)
+- Điểm `validate_logs.py`: **100/100** (baseline canonical run trên port 8000)
+- Tổng số traces: **≥10** (do P3 tạo, evidence trong `submission/evidence/03-traces-list.png`)
+- Số PII leak còn lại: **0**
 - Link/đường dẫn dashboard: **<điền sau khi P4 deploy>**
 
 ---
@@ -29,7 +32,7 @@
 ## 3. Logging và tracing
 
 - Evidence correlation ID: `submission/evidence/01-validate-logs.png`
-- Evidence PII redaction: `submission/evidence/01-validate-logs.png` + `submission/evidence/p2-notes.md`
+- Evidence PII redaction: `submission/evidence/p2-notes.md` + `submission/evidence/p2-04-validate-logs.png`
 - Evidence trace waterfall: `submission/evidence/04-trace-waterfall.png`
 - Giải thích một span đáng chú ý: **<điền khi có trace thật>**
 
@@ -57,12 +60,12 @@
 ## 6. Điều tra challenge
 
 - Challenge ID: `day13-k4-observability-v1`
-- Triệu chứng từ metrics: `submission/evidence/15-metrics-symptom.png` — **<mô tả: latency p95 tăng, error rate tăng>**
+- Triệu chứng từ metrics: `submission/evidence/15-metrics-symptom.png` — latency p95 tăng vượt ngưỡng 2000ms (chứng kiến ~2660ms), error rate vẫn 0%
 - Trace ID liên quan: `submission/evidence/16-trace-root-cause.png`
 - Log line/correlation ID liên quan: `submission/evidence/17-log-root-cause.png`
-- Root cause: **<điền sau khi chạy challenge>**
-- Fix action: **<điền sau khi chạy challenge>**
-- Preventive measure: **<điền sau khi chạy challenge>**
+- Root cause: **rag_slow incident** — RAG pipeline được cấu hình chậm cố định (~2656ms mỗi request), kéo theo latency p95 = 2660ms vượt SLO 3000ms
+- Fix action: Tối ưu retrieval pipeline (vector index, chunk size, reranker), hoặc tăng ngưỡng SLO tạm thời
+- Preventive measure: Thiết lập alert latency p95 > 2000ms, giám sát RAG span duration, circuit breaker cho slow RAG
 
 ---
 
@@ -72,11 +75,14 @@ Với mỗi thành viên, ghi rõ nhiệm vụ và link commit/PR tương ứng.
 
 | Thành viên | Phần việc | Commit/PR | Điều đã học |
 |---|---|---|---|
-| P1 | Correlation ID + request context | `<commit SHA>` | ... |
-| P2 | PII redaction + log pipeline/schema | `<commit SHA>` | ... |
-| P3 | Traces, prompt v1/v2, label & rollback | `<commit SHA>` | ... |
-| P4 | Dashboard, SLO & Alert | `<commit SHA>` | ... |
-| P5 | Incident, report, demo, release | `<commit SHA>` | ... |
+| Đỗ Văn Linh | `app/middleware.py`, `app/main.py` — correlation ID `req-<8hex>`, contextvars, enrichment `user_id_hash`/`session_id`/`feature`/`model`/`env`, response header `x-request-id` | `feat/p1-linh-correlation` — | |
+| Đỗ Thu Liễu | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` — đăng ký `scrub_event` trước `JsonlFileProcessor`, mở rộng PII pattern, test redaction | `feat/p2-lieu-pii` — | |
+| Nguyễn Thanh Bình (lead) | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` — prompt `day13-chat` v1/v2, label `baseline`/`candidate`/`production`, rollback, ≥10 trace có metadata | `feat/p3-binh-prompt-version` — | |
+| Trịnh Hải Đăng | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md` — 6 panel đúng contract, SLO target, 3 alert symptom-based + runbook | `feat/p4-dang-dashboard` — | |
+| Trần Chí Vũ | `scripts/`, `submission/` — challenge run, điều tra Metrics → Traces → Logs, gom evidence, release và demo | `feat/p5-vu-incident-report` — | |
+
+> Điền commit SHA hoặc link PR cụ thể vào cột thứ ba trước khi nộp. RUBRIC mục B2 (20 điểm cá nhân)
+> yêu cầu phần khai ở đây phải khớp với thay đổi thật trong Git.
 
 ---
 

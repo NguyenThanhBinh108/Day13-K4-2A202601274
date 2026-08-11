@@ -1,19 +1,49 @@
-# Evidence: Dashboard khi có incident (P95 tăng rõ)
+# Evidence: Dashboard khi có incident
 
-## Cách lấy
+Số liệu lấy từ `GET /api/summary` của [`scripts/dashboard_app.py`](../../scripts/dashboard_app.py)
+chạy trên `data/logs.jsonl` thật (133 bản ghi), ngày 2026-08-11.
 
-1. Chạy `python scripts/inject_incident.py --scenario rag_slow`
-2. Chạy `python scripts/load_test.py --concurrency 5`
-3. Mở dashboard đọc từ `data/logs.jsonl`
-4. Chụp màn hình toàn bộ dashboard
+## Cách tái hiện
 
-## Yêu cầu ảnh
+```bash
+python scripts/inject_incident.py                              # đọc config/challenge.json
+python scripts/load_test.py --challenge --concurrency 5
+python scripts/dashboard_app.py --log-path data/logs.jsonl     # mở http://127.0.0.1:8000
+python scripts/inject_incident.py --scenario rag_slow --disable
+```
 
-- Nhìn rõ 6 panel
-- Panel **latency** có p95 tăng rõ (trong challenge: ~2660ms, vượt threshold 2000ms)
-- Panel **errors** vẫn ở 0% (error rate không đổi)
-- Time range = 60 phút
+## Giá trị thật của 6 panel
 
-## Placeholder
+| Panel | Giá trị đo được | Ngưỡng contract | Kết quả |
+|---|---|---|---|
+| latency | p50 **150ms** · p95 **2650ms** · p99 **2651ms** | p95 ≤ 3000ms | ĐẠT |
+| traffic | **1,08** request/phút (65 request) | ≥ 1/phút | ĐẠT |
+| errors | **0,00%** (0 failed / 65 received) | ≤ 2% | ĐẠT |
+| cost | **0,1315 usd** | ≤ 2,5 usd | ĐẠT |
+| tokens | in **2 155** · out **8 336** | ≤ 50 000 | ĐẠT |
+| quality | **0,8769** | ≥ 0,75 | ĐẠT |
 
-Ảnh: `submission/evidence/10-dashboard-incident.png`
+## Điều đáng chú ý — và đây mới là phần đáng nói khi demo
+
+Incident **có** hiện rõ trên panel latency: p50 nhảy từ 150ms (baseline 60 request) lên
+2650ms. Nhưng **không panel nào vi phạm ngưỡng**, kể cả latency.
+
+Lý do: cửa sổ 60 phút chứa cả 60 request baseline lẫn 5 request challenge, nên p95 bị 60
+mẫu nhanh kéo xuống còn 2650ms — vẫn dưới SLO 3000ms. Nếu chỉ nhìn 5 request challenge thì
+p95 = 2651ms, và cả 5/5 đều vượt **ngưỡng challenge 2000ms**.
+
+Bài học rút ra: **ngưỡng SLO 3000ms quá lỏng để bắt sự cố này**. Alert cứu được là nhờ
+ngưỡng challenge 2000ms chặt hơn. Đây là một preventive measure đáng đề xuất trong report —
+siết ngưỡng cảnh báo xuống dưới mức SLO để bắt sớm, thay vì đợi thủng SLO mới báo.
+
+## Yêu cầu ảnh chụp
+
+- Nhìn rõ đủ 6 panel với tên panel
+- Panel latency thấy p95 tăng rõ so với baseline
+- Time range 60 phút và đơn vị của từng panel
+- Đường threshold/SLO hiện trên biểu đồ
+
+## Ảnh
+
+- `submission/evidence/09-dashboard-baseline.png` — trước khi bật incident
+- `submission/evidence/10-dashboard-incident.png` — sau khi bật incident

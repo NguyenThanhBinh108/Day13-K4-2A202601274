@@ -22,10 +22,12 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`: **100/100** (canonical baseline run trên port 8000, 10 correlation ID, 0 PII leak)
-- Tổng số traces: **≥10** (do P3 tạo, evidence trong `submission/evidence/03-traces-list.png`)
-- Số PII leak còn lại: **0**
-- Link/đường dẫn dashboard: **<điền sau khi P4 deploy>**
+- Điểm `validate_logs.py`: **100/100** — canonical run 2026-08-11, 133 bản ghi, **67 correlation ID**, 0 PII leak
+- Tổng số traces: **0** — `.env` chưa có key Langfuse nên `/health` trả `tracing_enabled: false`.
+  Đây là hạng mục còn thiếu, do P3 (Bình) hoàn thành sau khi có key.
+- Số PII leak còn lại: **0** (quét bằng chính 4 detector của `scripts/validate_logs.py`)
+- Link/đường dẫn dashboard: chạy cục bộ `python scripts/dashboard_app.py --log-path data/logs.jsonl`
+  → `http://127.0.0.1:8000`, API số liệu ở `/api/summary`
 
 ## 3. Logging và tracing
 
@@ -47,7 +49,9 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 - Kết quả `validate_dashboard.py`: **HỢP LỆ: 6/6 panel**
 - Evidence dashboard: `submission/evidence/09-dashboard-baseline.png`, `10-dashboard-incident.png`
 - SLO đã chọn và lý do:
-  - `latency_p95_ms`: target 99.5%, objective 3000ms — baseline ~150ms, challenge incident ~2660ms, đặt ngưỡng 3000ms để bắt sớm
+  - `latency_p95_ms`: target 99.5%, objective 3000ms — đo thật: baseline p95 **150ms**, challenge p95
+    **2651ms**. Lưu ý 2651ms **chưa** thủng SLO 3000ms, nên riêng SLO này không đủ bắt sự cố —
+    xem preventive measure ở mục 6.
   - `error_rate_pct`: target 99.0%, objective 2% — challenge run cho thấy 0% error, target 2% có buffer nhạy
   - `daily_cost_usd`: target 100%, objective 2.5 USD — ~0.0025 USD/request, 1000 request/ngày = ~2.5 USD
   - `quality_score_avg`: target 95.0%, objective 0.75 — mock trả ~0.9, target 0.75 đảm bảo output chất lượng
@@ -57,13 +61,31 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ## 6. Điều tra challenge
 
-- Challenge ID: `day13-k4-observability-v1`
-- Triệu chứng từ metrics: `submission/evidence/15-metrics-symptom.png` — latency p95 tăng vượt ngưỡng 2000ms (chứng kiến ~2660ms), error rate vẫn 0%
-- Trace ID liên quan: `submission/evidence/16-trace-root-cause.png`
-- Log line/correlation ID liên quan: `submission/evidence/17-log-root-cause.png`
-- Root cause: **rag_slow incident** — RAG pipeline được cấu hình chậm cố định (~2656ms mỗi request), kéo theo latency p95 = 2660ms vượt SLO 3000ms
-- Fix action: Tối ưu retrieval pipeline (vector index, chunk size, reranker), hoặc tăng ngưỡng SLO tạm thời
-- Preventive measure: Thiết lập alert latency p95 > 2000ms, giám sát RAG span duration, circuit breaker cho slow RAG
+Run thật ngày 2026-08-11, mọi con số dưới đây đo từ `data/logs.jsonl` (133 bản ghi).
+
+- Challenge ID: `day13-k4-observability-v1` (cohort K4, incident `rag_slow`, seed 1304, feature `monitoring`)
+- Triệu chứng từ metrics: latency **p50 150ms → 2650ms (×17,7)** giữa baseline (60 request,
+  incident tắt) và challenge (5 request, incident bật). Error rate giữ **0%**, cost và token
+  **không đổi** — chỉ mỗi latency động. Chi tiết: [`10-dashboard-incident.md`](evidence/10-dashboard-incident.md)
+- Trace ID liên quan: **chưa có** — `.env` thiếu key Langfuse nên chưa sinh được trace nào.
+  Ba trong bốn mắt xích (Metrics → Logs → Root cause) đã có bằng chứng thật; mắt xích Traces
+  chờ P3. Xem [`16-trace-root-cause.md`](evidence/16-trace-root-cause.md)
+- Log line/correlation ID liên quan: **`req-245d336c`**, `latency_ms = 2651`,
+  session `k4-challenge-s05`. Hai dòng log nguyên văn cách nhau **2,652s** trong
+  [`17-log-root-cause.md`](evidence/17-log-root-cause.md)
+- Root cause: cờ incident `rag_slow` bật một **`time.sleep(2.5)` chặn luồng** trong bước truy hồi
+  tài liệu `retrieve()` tại [`app/mock_rag.py:18`](../app/mock_rag.py#L18), chạy **trước** lời gọi LLM.
+  Bằng chứng: 150ms baseline + 2500ms = 2650ms đo được, khớp tuyệt đối; và vì độ trễ nằm ngoài
+  đường đi của token nên `tokens_in/out`, `cost_usd`, `quality_score` đều không đổi — đúng như số liệu.
+- Fix action: gỡ `sleep` khỏi đường xử lý request (`python scripts/inject_incident.py --scenario rag_slow --disable`).
+  Với hệ thống thật: đặt timeout cho bước retrieval và trả câu trả lời fallback khi quá hạn,
+  thay vì để một lời gọi chậm chặn cả request.
+- Preventive measure:
+  1. **Siết ngưỡng alert xuống dưới SLO.** Sự cố này làm p95 lên 2650ms nhưng **không** thủng
+     SLO 3000ms — nếu chỉ cảnh báo khi thủng SLO thì đã bỏ lọt. Ngưỡng challenge 2000ms mới bắt được.
+  2. Tách span riêng cho `retrieve` để dashboard thấy được thời gian từng bước, không chỉ tổng.
+  3. Alert khi latency tăng mà token/cost **không** tăng — dấu hiệu đặc trưng của nghẽn ở bước
+     không dùng LLM, giúp khoanh vùng ngay từ metrics.
 
 ---
 
@@ -73,11 +95,11 @@ Với mỗi thành viên, ghi rõ nhiệm vụ và link commit/PR tương ứng.
 
 | Thành viên | Phần việc | Commit/PR | Điều đã học |
 |---|---|---|---|
-| Đỗ Văn Linh | `app/middleware.py`, `app/main.py` — correlation ID `req-<8hex>`, contextvars, enrichment `user_id_hash`/`session_id`/`feature`/`model`/`env`, response header `x-request-id` | `feat/p1-linh-correlation` — | |
-| Đỗ Thu Liễu | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` — đăng ký `scrub_event` trước `JsonlFileProcessor`, mở rộng PII pattern, test redaction | `feat/p2-lieu-pii` — | |
-| Nguyễn Thanh Bình (lead) | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` — prompt `day13-chat` v1/v2, label `baseline`/`candidate`/`production`, rollback, ≥10 trace có metadata | `feat/p3-binh-prompt-version` — | |
-| Trịnh Hải Đăng | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md` — 6 panel đúng contract, SLO target, 3 alert symptom-based + runbook | `feat/p4-dang-dashboard` — | |
-| Trần Chí Vũ | `scripts/`, `submission/` — challenge run, điều tra Metrics → Traces → Logs, gom evidence, release và demo | `feat/p5-vu-incident-report` — | |
+| Đỗ Văn Linh | `app/middleware.py`, `app/main.py` — correlation ID `req-<8hex>`, contextvars, enrichment `user_id_hash`/`session_id`/`feature`/`model`/`env`, response header `x-request-id` | `feat/p1-linh-correlation` · `863fc37` | |
+| Đỗ Thu Liễu | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` — đăng ký `scrub_event` trước `JsonlFileProcessor`, mở rộng PII pattern, test redaction | `feat/p2-pii` · `a734f7a`, `8de6d59`, `7f408a4` | |
+| Nguyễn Thanh Bình (lead) | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` — prompt `day13-chat` v1/v2, label `baseline`/`candidate`/`production`, rollback, ≥10 trace có metadata | `feat/p3-binh-prompt-version` · `70c3d44`, `a0b8fd9`, `4bb24f6` | |
+| Trịnh Hải Đăng | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml`, `docs/alerts.md` — 6 panel đúng contract, SLO target, 3 alert symptom-based + runbook | `haidang2425` · `e459a03`, `7e67634` | |
+| Trần Chí Vũ | `scripts/`, `submission/` — challenge run, điều tra Metrics → Traces → Logs, gom evidence, release và demo | `feat/p5-incident-report` · `e5af6ea`, `5bbd5a4`, `3d1d248` | |
 
 > Điền commit SHA hoặc link PR cụ thể vào cột thứ ba trước khi nộp. RUBRIC mục B2 (20 điểm cá nhân)
 > yêu cầu phần khai ở đây phải khớp với thay đổi thật trong Git.

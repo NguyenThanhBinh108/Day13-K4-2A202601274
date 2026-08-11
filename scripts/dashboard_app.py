@@ -565,6 +565,12 @@ def evaluate_threshold(metric: Metric | None, threshold: dict[str, Any]) -> str:
     samples = metric.threshold_samples()
     if not samples:
         return STATUS_UNKNOWN
+    # `multi` (vd tokens_in + tokens_out) chỉ kết luận được khi MỌI field đều có mẫu.
+    # `threshold_samples()` bỏ qua field None, nên nếu tokens_out vắng hoàn toàn thì panel
+    # sẽ chấm ĐẠT NGƯỠNG chỉ dựa trên tokens_in — đúng cái bẫy "tổng của tập rỗng trông
+    # như hệ thống đang tốt" mà các phép đo khác đã tránh bằng cách trả None.
+    if metric.kind == "multi" and any(point.value is None for point in metric.points):
+        return STATUS_UNKNOWN
     limit = threshold.get("value")
     operator = threshold.get("operator")
     if not isinstance(limit, (int, float)) or operator not in OPERATOR_SIGN:

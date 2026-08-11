@@ -328,6 +328,29 @@ def test_error_rate_never_divides_by_zero(tmp_path: Path) -> None:
     assert errors.status == "unknown"
 
 
+def test_multi_field_panel_needs_every_field_before_it_reports_ok(tmp_path: Path) -> None:
+    """Panel tokens chỉ được kết luận khi CẢ tokens_in và tokens_out có mẫu.
+
+    Nếu chỉ tính trên những field có dữ liệu thì một nửa panel vắng hoàn toàn vẫn cho ra
+    ĐẠT NGƯỠNG — cùng loại bẫy với "tổng của tập rỗng = 0 trông như chi phí đang rất tốt".
+    """
+    source = tmp_path / "half-tokens.jsonl"
+    source.write_text(
+        json.dumps(
+            {"ts": "2026-01-01T12:00:00.000Z", "event": "response_sent", "tokens_in": 100}
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _, panels, _, _ = build_dashboard(CONFIG, source, ANCHOR)
+    tokens = {panel.panel_id: panel for panel in panels}["tokens"]
+    values = {point.label: point.value for point in tokens.metrics[0].points}
+
+    assert values == {"tokens_in": 100, "tokens_out": None}
+    assert tokens.status == "unknown"
+
+
 def test_empty_source_reports_missing_data_instead_of_green_zero(tmp_path: Path) -> None:
     source = tmp_path / "empty.jsonl"
     source.write_text("", encoding="utf-8")

@@ -38,6 +38,19 @@ không phải thứ để rung chuông.
   Hệ quả: lọc theo tag `cid:` chỉ dùng được cho request **thành công**; với request lỗi phải lọc theo `Level = ERROR`
   và mốc thời gian, còn bằng chứng chính là dòng log ở bước 3.
 - Port mặc định trong lệnh là `8000` (instance canonical của P5); đổi sang port riêng nếu đang chạy instance của mình.
+- **Ngưỡng latency hiện KHÔNG bắt được incident chính thức của K4 — đọc trước khi dùng Alert 1 để điều tra
+  challenge.** `config/challenge.json` (Lab Coach phát hành, RULES cấm sửa) đặt `latency_threshold_ms: 2000`,
+  trong khi panel `latency`, `latency_p95_ms` trong [config/slo.yaml](../config/slo.yaml) và Alert 1 đều dùng
+  3000 ms. Incident chính thức là `rag_slow`, đo được **~2650 ms** (150 ms của `FakeLLM.generate` + 2.5 s
+  `time.sleep`), tức nằm **giữa hai con số**. Hệ quả đã kiểm chứng: chạy `dashboard_app.py` trên log của
+  challenge cho `p95 = 2651 ms → ĐẠT NGƯỠNG`, và Alert 1 (`> 3000`) **không bao giờ kêu** trong suốt sự cố.
+  Nghĩa là bước Metrics của luồng Metrics → Traces → Logs hiện không có triệu chứng nào để chỉ vào cho đúng
+  kịch bản mà đề bài dựng ra. Chừng nào nhóm chưa chốt lại con số, khi điều tra challenge phải so p95 với
+  **2000 ms của `challenge.json`** chứ không phải với ngưỡng panel, và ghi rõ trong báo cáo là đang dùng
+  thước đo nào. Cách sửa triệt để là hạ ngưỡng latency về 2000 ms **đồng thời ở cả bốn chỗ**
+  (`config/dashboard.yaml` panel `latency`, `objective` trong `slo.yaml`, `condition` trong
+  `alert_rules.yaml`, và mọi số 3000 trong tài liệu này) — đổi lẻ một chỗ sẽ làm dashboard, SLO và alert
+  nói ba con số khác nhau. `error_budget_minutes` không đổi vì nó chỉ phụ thuộc `target` 99.5% và cửa sổ 28 ngày.
 
 ## Alert 1
 

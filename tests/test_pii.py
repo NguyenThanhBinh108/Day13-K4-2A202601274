@@ -1,9 +1,10 @@
+import collections
 import itertools
 import json
 import re
 import uuid
 
-from app.pii import hash_user_id, scrub_text
+from app.pii import hash_user_id, scrub_text, scrub_value
 
 # 4 detector của scripts/validate_logs.py — chép nguyên văn để test khoá đúng thứ
 # validator chấm, không phải khoá theo pattern nội bộ của app.
@@ -303,3 +304,21 @@ def test_correlation_id_generated_like_middleware_is_never_mangled() -> None:
     for _ in range(5_000):
         correlation_id = f"req-{uuid.uuid4().hex[:8]}"
         assert scrub_text(correlation_id) == correlation_id, correlation_id
+
+
+def test_scrub_value_never_raises_on_exotic_containers() -> None:
+    """scrub_value chạy trong processor của structlog nên không được phép ném.
+
+    `type(value)(<generator>)` dựng lại namedtuple bằng một tham số vị trí duy nhất nên
+    ném TypeError; khi đó một log call lỡ truyền namedtuple sẽ làm hỏng cả request thay
+    vì chỉ hỏng dòng log.
+    """
+    Point = collections.namedtuple("Point", "x y")
+
+    assert scrub_value(Point("a@b.com", "ok")) == ("[REDACTED_EMAIL]", "ok")
+    assert scrub_value(("a@b.com",)) == ("[REDACTED_EMAIL]",)
+    assert scrub_value(["a@b.com"]) == ["[REDACTED_EMAIL]"]
+    assert scrub_value({"k": ["a@b.com"]}) == {"k": ["[REDACTED_EMAIL]"]}
+    # Kiểu không phải chuỗi/container đi qua nguyên vẹn.
+    assert scrub_value(None) is None
+    assert scrub_value(0) == 0

@@ -62,8 +62,15 @@ def scrub_value(value: Any) -> Any:
         return scrub_text(value)
     if isinstance(value, dict):
         return {key: scrub_value(v) for key, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return type(value)(scrub_value(v) for v in value)
+    if isinstance(value, list):
+        return [scrub_value(v) for v in value]
+    if isinstance(value, tuple):
+        # Dựng lại bằng `tuple(...)` chứ không phải `type(value)(...)`: namedtuple nhận
+        # tham số vị trí nên `Point(<generator>)` ném TypeError, và scrub_value chạy trong
+        # chuỗi processor của structlog — một log call lỡ truyền namedtuple sẽ làm vỡ luôn
+        # request thay vì chỉ ghi log. Mất kiểu namedtuple không ảnh hưởng gì vì
+        # JSONRenderer đằng nào cũng tuần tự hoá tuple thành list.
+        return tuple(scrub_value(v) for v in value)
     return value
 
 

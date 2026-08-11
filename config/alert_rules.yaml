@@ -1,39 +1,31 @@
-# Ba alert symptom-based cho Day 13, bám đúng threshold trong config/dashboard.yaml và
-# error budget trong config/slo.yaml. Mỗi alert canh một triệu chứng người dùng cảm nhận
-# được — chậm / lỗi / trả lời kém — nên ba tín hiệu không trùng nhau và không alert nào
-# dựa vào nguyên nhân kỹ thuật nội bộ (cờ rag_slow, tên exception, số span RAG...).
-#
-# Thang severity chỉ có hai mức, suy ra từ tốc độ đốt error budget 28 ngày:
-#   critical = vi phạm liên tục sẽ đốt hết budget trong DƯỚI 24 giờ  -> gọi người trực ngay
-#   warning  = cần HƠN 24 giờ vi phạm liên tục mới hết budget        -> mở ticket trong giờ làm việc
-# Áp dụng: latency 201.6 phút -> cháy sau 3.4 giờ (critical); error rate 403.2 phút ->
-# 6.7 giờ (critical); quality 2016 phút -> 33.6 giờ (warning).
-#
-# Mọi condition đều có đủ ba thành phần: ngưỡng, thời gian duy trì và số mẫu tối thiểu.
-# Thiếu "sustained for" thì alert nhấp nháy theo từng request lẻ; thiếu số mẫu tối thiểu
-# thì một request chậm/lỗi duy nhất trong phút vắng khách cũng kéo tỷ lệ lên 100%.
-#
-# Value viết không dấu vì console Windows mặc định cp1252 — xem lý do trong config/slo.yaml.
-# Runbook đầy đủ (có dấu) nằm ở docs/alerts.md theo đúng anchor bên dưới.
 alerts:
-  - name: user_facing_slow_response
+  - name: high_latency_p95
     severity: critical
-    condition: 'p95(latency_ms where event == "response_sent") > 3000 ms sustained for 5m (1m buckets, min 5 requests)'
+    condition: >-
+      p95(latency_ms) tính trên rolling window 5 phút > 3000ms (khớp
+      dashboard.yaml panel latency + slo.yaml latency_p95_ms), duy trì liên
+      tục >= 5 phút
     type: symptom-based
-    # Tran Chi Vu (P5) — giữ scripts/inject_incident.py, người bật/tắt được nguyên nhân.
-    owner: Tran Chi Vu (P5)
+    owner: "P5 (on-call điều tra) — escalate P3 nếu root cause ở RAG/LLM"
     runbook: docs/alerts.md#alert-1
-  - name: user_facing_request_failure
+
+  - name: high_error_rate
     severity: critical
-    condition: '100 * count(event == "request_failed") / count(event == "request_received") > 2 percent sustained for 5m (1m buckets, min 5 requests)'
+    condition: >-
+      error_rate_pct = count(event=="request_failed") /
+      count(event=="request_received") * 100, tính trên rolling window 5
+      phút > 2% (khớp dashboard.yaml panel errors + slo.yaml
+      error_rate_pct), duy trì liên tục >= 5 phút
     type: symptom-based
-    # Do Van Linh (P1) — giữ app/main.py, nơi bắt exception và ghi event request_failed.
-    owner: Do Van Linh (P1)
+    owner: "P5 (on-call điều tra) — escalate P3 nếu lỗi ở agent/RAG, P1 nếu ở middleware"
     runbook: docs/alerts.md#alert-2
-  - name: user_facing_answer_quality_drop
+
+  - name: cost_budget_burn
     severity: warning
-    condition: 'mean(quality_score where event == "response_sent") < 0.75 sustained for 10m (1m buckets, min 10 requests)'
+    condition: >-
+      sum(cost_usd) tính trên rolling window 60 phút > $2.5 (khớp
+      dashboard.yaml panel cost + slo.yaml daily_cost_usd), duy trì liên
+      tục >= 10 phút
     type: symptom-based
-    # Nguyen Thanh Binh (P3) — giữ scripts/seed_prompts.py, người duy nhất rollback được label production.
-    owner: Nguyen Thanh Binh (P3)
+    owner: "P5 (on-call điều tra) — escalate P3 nếu do prompt/model config"
     runbook: docs/alerts.md#alert-3

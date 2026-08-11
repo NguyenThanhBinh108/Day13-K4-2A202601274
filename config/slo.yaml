@@ -1,56 +1,39 @@
-# SLO của nhóm K4 — Day 13. Bốn SLI dưới đây bám đúng bốn threshold có thể vi phạm
-# trong config/dashboard.yaml, để dashboard, SLO và alert luôn nói cùng một con số.
-#
-# Vì sao value trong file này viết không dấu: console Windows mặc định là cp1252, nên
-# lệnh kiểm tra `python -c "import yaml;print(yaml.safe_load(open('config/slo.yaml',encoding='utf-8')))"`
-# sẽ UnicodeEncodeError ngay khi một value có dấu tiếng Việt. Comment không bị in ra
-# nên vẫn giữ dấu; bản diễn giải đầy đủ có dấu nằm trong docs/alerts.md.
 service: day13-observability-lab
-
-# 28 ngày = 28 x 24 x 60 = 40320 phút. Mọi error_budget_minutes bên dưới đều bằng
-# (100 - target)% x 40320 — ghi sẵn ra file để không phải nhẩm lại lúc có sự cố.
 window: 28d
-
 slis:
   latency_p95_ms:
     objective: 3000
     target: 99.5
-    error_budget_minutes: 201.6
-    reason: >-
-      Giu dung threshold p95 <= 3000ms cua panel latency trong dashboard.yaml. Target 99.5%
-      tren cua so 28 ngay (40320 phut) cho phep 201.6 phut vi pham. Khong chon 99.9 (chi 40.3
-      phut) vi mot lan RAG cham keo dai 30 phut da an 74% budget, khong con cho de dieu tra
-      binh tinh; cung khong chon 99.0 (403.2 phut) vi gan 7 tieng cham lien tuc ma van coi la
-      dat cam ket thi SLO khong con y nghia.
+    rationale: >
+      Khớp threshold p95 trong config/dashboard.yaml và latency_threshold_ms mặc
+      định của challenge chính thức. FakeLLM sleep nền khoảng 150ms; kịch bản
+      rag_slow cộng thêm 2.5s, nên ngưỡng 3000ms đủ nhạy để bắt incident thật mà
+      không báo động giả lúc tải bình thường (concurrency 5). Target 99.5%/28
+      ngày tương đương error budget ~201 phút vi phạm được phép — đủ dư địa cho
+      vài lần practice/challenge trong buổi lab mà không phá SLO.
   error_rate_pct:
     objective: 2
     target: 99.0
-    error_budget_minutes: 403.2
-    reason: >-
-      Giu dung threshold error_rate_pct <= 2% cua panel errors. Target 99.0% = 403.2 phut duoc
-      phep vuot 2% trong 28 ngay - rong hon latency mot bac vi mau so rat nho: panel traffic chi
-      bao dam >= 1 request/phut, nen 1 request loi trong mot phut it traffic da la 100% error rate.
-      De target 99.9 (40.3 phut) thi mot cum loi ngan cung lam vi pham SLO ca thang.
+    rationale: >
+      Khớp threshold error_rate của panel errors. App dùng FakeLLM/RAG giả lập
+      nên tỉ lệ lỗi kỳ vọng gần 0% khi không có incident; ngưỡng 2% đủ room cho
+      lỗi hạ tầng thoáng qua (timeout, retry) mà không che mất incident tool_fail
+      thật, vì tool_fail làm error rate tăng vượt xa 2% chỉ trong vài giây.
   daily_cost_usd:
     objective: 2.5
     target: 100.0
-    error_budget_minutes: 0
-    reason: >-
-      Cost la ngan sach tai chinh chu khong phai chat luong dich vu xac suat: vuot mot ngay la
-      vuot, nen target = 100% va error budget = 0 phut. Tran 28 ngay = 28 x 2.5 = 70 USD. Panel
-      cost trong dashboard.yaml canh total <= 2.5 USD tren cua so 60 phut, dong vai canh bao som
-      cua tran nay - cham 2.5 USD trong 1 gio nghia la da tieu het ngan sach ca ngay. Khong dat
-      alert rieng cho cost vi nguoi dung khong cam nhan duoc chi phi; theo doi bang panel
-      cost + tokens va xu ly trong gio lam viec.
+    rationale: >
+      Khớp threshold total của panel cost. Với công thức cost trong app/agent.py
+      ($3/1M input token, $15/1M output token) và tải load_test practice (khoảng
+      15-30 request), tổng cost bình thường dưới $0.5; ngưỡng $2.5 đủ nhạy để
+      phát hiện kịch bản cost_spike (nhân tokens_out lên 4 lần) nhưng không báo
+      động giả với dao động nhỏ.
   quality_score_avg:
     objective: 0.75
     target: 95.0
-    error_budget_minutes: 2016
-    reason: >-
-      Giu dung threshold mean(quality_score) >= 0.75 cua panel quality. Day la proxy heuristic
-      (_heuristic_quality trong app/agent.py) chu khong phai danh gia cua nguoi that, nen de
-      target 95.0% (2016 phut budget) - long nhat trong 4 SLI de khong page vi nhieu thong ke.
-      Diem thuc te cua fake LLM roi vao khoang 0.8-0.9, nguong 0.75 nam ngay duoi day nen chi
-      tut xuong khi cau tra loi that su ngan di (<= 40 ky tu, vi dieu kien cong diem la
-      len(answer) > 40), lac de, hoac lap lai PII va bi cham -0.2 theo dieu kien "[REDACTED"
-      trong _heuristic_quality.
+    rationale: >
+      Khớp threshold mean của panel quality. Heuristic quality trong
+      app/agent.py cộng điểm khi có doc RAG và câu trả lời đủ dài, trừ điểm khi
+      câu trả lời bị redact PII; mức 0.75 phản ánh "câu trả lời bình thường có
+      RAG" (khoảng 0.8), đủ thấp để không báo động giả nhưng đủ cao để bắt được
+      lúc RAG fail (tool_fail) làm quality tụt xuống khoảng 0.5-0.6.

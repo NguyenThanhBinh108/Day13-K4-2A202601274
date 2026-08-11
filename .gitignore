@@ -9,3 +9,5 @@ data/dev/
 .env.local
 .pytest_cache/
 .antigravity/
+data/dev/
+.env.local

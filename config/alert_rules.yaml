@@ -1,19 +1,39 @@
+# Ba alert symptom-based cho Day 13, bám đúng threshold trong config/dashboard.yaml và
+# error budget trong config/slo.yaml. Mỗi alert canh một triệu chứng người dùng cảm nhận
+# được — chậm / lỗi / trả lời kém — nên ba tín hiệu không trùng nhau và không alert nào
+# dựa vào nguyên nhân kỹ thuật nội bộ (cờ rag_slow, tên exception, số span RAG...).
+#
+# Thang severity chỉ có hai mức, suy ra từ tốc độ đốt error budget 28 ngày:
+#   critical = vi phạm liên tục sẽ đốt hết budget trong DƯỚI 24 giờ  -> gọi người trực ngay
+#   warning  = cần HƠN 24 giờ vi phạm liên tục mới hết budget        -> mở ticket trong giờ làm việc
+# Áp dụng: latency 201.6 phút -> cháy sau 3.4 giờ (critical); error rate 403.2 phút ->
+# 6.7 giờ (critical); quality 2016 phút -> 33.6 giờ (warning).
+#
+# Mọi condition đều có đủ ba thành phần: ngưỡng, thời gian duy trì và số mẫu tối thiểu.
+# Thiếu "sustained for" thì alert nhấp nháy theo từng request lẻ; thiếu số mẫu tối thiểu
+# thì một request chậm/lỗi duy nhất trong phút vắng khách cũng kéo tỷ lệ lên 100%.
+#
+# Value viết không dấu vì console Windows mặc định cp1252 — xem lý do trong config/slo.yaml.
+# Runbook đầy đủ (có dấu) nằm ở docs/alerts.md theo đúng anchor bên dưới.
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
+  - name: user_facing_slow_response
+    severity: critical
+    condition: 'p95(latency_ms where event == "response_sent") > 3000 ms sustained for 5m (1m buckets, min 5 requests)'
     type: symptom-based
-    owner: TODO
+    # Tran Chi Vu (P5) — giữ scripts/inject_incident.py, người bật/tắt được nguyên nhân.
+    owner: Tran Chi Vu (P5)
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
+  - name: user_facing_request_failure
+    severity: critical
+    condition: '100 * count(event == "request_failed") / count(event == "request_received") > 2 percent sustained for 5m (1m buckets, min 5 requests)'
     type: symptom-based
-    owner: TODO
+    # Do Van Linh (P1) — giữ app/main.py, nơi bắt exception và ghi event request_failed.
+    owner: Do Van Linh (P1)
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
+  - name: user_facing_answer_quality_drop
+    severity: warning
+    condition: 'mean(quality_score where event == "response_sent") < 0.75 sustained for 10m (1m buckets, min 10 requests)'
     type: symptom-based
-    owner: TODO
+    # Nguyen Thanh Binh (P3) — giữ scripts/seed_prompts.py, người duy nhất rollback được label production.
+    owner: Nguyen Thanh Binh (P3)
     runbook: docs/alerts.md#alert-3

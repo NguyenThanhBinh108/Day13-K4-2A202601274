@@ -1,6 +1,7 @@
 import argparse
 import concurrent.futures
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -14,14 +15,14 @@ if str(REPO_ROOT) not in sys.path:
 from app.challenge import load_challenge, ordered_queries
 from app.cli import configure_utf8_stdio
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
 QUERIES = Path("data/sample_queries.jsonl")
 
 
-def send_request(client: httpx.Client, payload: dict) -> None:
+def send_request(client: httpx.Client, payload: dict, base_url: str) -> None:
     try:
         start = time.perf_counter()
-        r = client.post(f"{BASE_URL}/chat", json=payload)
+        r = client.post(f"{base_url}/chat", json=payload)
         latency = (time.perf_counter() - start) * 1000
         print(f"[{r.status_code}] {r.json().get('correlation_id')} | {payload['feature']} | {latency:.1f}ms")
     except Exception as e:
@@ -36,6 +37,11 @@ def main() -> None:
         "--challenge",
         action="store_true",
         help="Dùng input chính thức trong config/challenge.json sau khi được release.",
+    )
+    parser.add_argument(
+        "--base-url",
+        default=BASE_URL,
+        help="Base URL của API (mặc định đọc env BASE_URL hoặc http://127.0.0.1:8000)",
     )
     args = parser.parse_args()
 
@@ -53,11 +59,14 @@ def main() -> None:
     with httpx.Client(timeout=30.0) as client:
         if args.concurrency > 1:
             with concurrent.futures.ThreadPoolExecutor(max_workers=args.concurrency) as executor:
-                futures = [executor.submit(send_request, client, payload) for payload in payloads]
+                futures = [
+                    executor.submit(send_request, client, payload, args.base_url)
+                    for payload in payloads
+                ]
                 concurrent.futures.wait(futures)
         else:
             for payload in payloads:
-                send_request(client, payload)
+                send_request(client, payload, args.base_url)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -93,16 +94,16 @@ def load_dashboard_config(path: Path) -> dict:
     return payload
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     configure_utf8_stdio()
     parser = argparse.ArgumentParser(description="Kiểm tra dashboard contract của Day 13")
     parser.add_argument(
         "--config",
         type=Path,
-        default=REPO_ROOT / "config" / "dashboard.yaml",
-        help="Đường dẫn tới dashboard YAML",
+        default=Path(os.getenv("DASHBOARD_CONFIG", REPO_ROOT / "config" / "dashboard.yaml")),
+        help="Đường dẫn tới dashboard YAML (mặc định đọc env DASHBOARD_CONFIG hoặc config/dashboard.yaml)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         load_dashboard_config(args.config)

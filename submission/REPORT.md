@@ -1,63 +1,71 @@
-# Báo cáo Day 13 Observability
+# Báo cáo Day 13 Observability — K4
 
 ## 1. Thông tin nhóm
 
-- Tên nhóm:
-- Repository URL:
-- Commit SHA cuối:
+- Tên nhóm: K4-2A202601274
+- Repository URL: https://github.com/NguyenThanhBinh108/Day13-K4-2A202601274
+- Commit SHA cuối: `e5af6ea` (cập nhật sau khi merge P1, P2, P3)
 - Thành viên và vai trò:
 
-| Thành viên | MSSV | Vai trò | Phạm vi |
-|---|---|---|---|
-| Đỗ Văn Linh | 2A202601190 | Logging & PII | Correlation ID, request context, log enrichment |
-| Đỗ Thu Liễu | 2A202601898 | Logging & PII | PII redaction, log pipeline, logging schema |
-| Nguyễn Thanh Bình (lead) | 2A202601274 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback |
-| Trịnh Hải Đăng | 2A202601602 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert rules, runbook |
-| Trần Chí Vũ | 2A202601044 | Incident, Report & Demo | Challenge, evidence, release, demo |
+| Thành viên | MSSV | Vai trò | Phạm vi | File sở hữu |
+|---|---|---|---|---|
+| Đỗ Văn Linh | 2A202601190 | Logging & PII | Correlation ID, request context, log enrichment | `app/middleware.py`, `app/main.py` |
+| Đỗ Thu Liễu | 2A202601898 | Logging & PII | PII redaction, log pipeline, logging schema | `app/pii.py`, `app/logging_config.py`, `config/logging_schema.json` |
+| Nguyễn Thanh Bình (lead) | 2A202601274 | Tracing & Prompt Version | Traces, prompt v1/v2, label & rollback | `app/tracing.py`, `app/agent.py`, `app/prompt_management.py` |
+| Trịnh Hải Đăng | 2A202601602 | Dashboard, SLO & Alert | 6 panel, threshold, SLO, alert rules, runbook | `config/dashboard.yaml`, `config/slo.yaml`, `config/alert_rules.yaml` |
+| Trần Chí Vũ | 2A202601044 | Incident, Report & Demo | Challenge, evidence, release, demo | `scripts/`, `submission/`, `.gitignore` |
 
 Nhóm có 5 thành viên trên 4 vai trò: vai trò `Logging & PII` do Linh và Liễu đồng đảm nhiệm,
 tách theo file sở hữu chứ không tách thêm vai trò mới.
 
-Chi tiết phân công và quy ước sở hữu file: [docs/TEAM_SPLIT.md](../docs/TEAM_SPLIT.md).
+---
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`:
-- Tổng số traces:
-- Số PII leak còn lại:
-- Link/đường dẫn dashboard:
+- Điểm `validate_logs.py`: **100/100** (canonical baseline run trên port 8000, 10 correlation ID, 0 PII leak)
+- Tổng số traces: **≥10** (do P3 tạo, evidence trong `submission/evidence/03-traces-list.png`)
+- Số PII leak còn lại: **0**
+- Link/đường dẫn dashboard: **<điền sau khi P4 deploy>**
 
 ## 3. Logging và tracing
 
-- Evidence correlation ID:
-- Evidence PII redaction:
-- Evidence trace waterfall:
-- Giải thích một span đáng chú ý:
+- Evidence correlation ID: `submission/evidence/p1-notes.md` + `submission/evidence/01-validate-logs.png`
+- Evidence PII redaction: `submission/evidence/p2-notes.md` + `submission/evidence/p2-04-validate-logs.png`
+- Evidence trace waterfall: `submission/evidence/04-trace-waterfall.png`
+- Giải thích một span đáng chú ý: **<điền khi có trace thật>**
 
 ## 4. Prompt versioning
 
-- Prompt name:
-- Version/label baseline:
-- Version/label candidate:
-- Trace ID của mỗi version:
-- Bằng chứng đổi label hoặc rollback:
+- Prompt name: `day13-chat`
+- Version/label baseline: v1 — label `baseline` + `production`
+- Version/label candidate: v2 — label `candidate`
+- Trace ID của mỗi version: **<điền 2 trace ID từ P3>**
+- Bằng chứng đổi label hoặc rollback: `submission/evidence/07-rollback-before.png`, `08-rollback-after.png`
 
 ## 5. Dashboard, SLO và alerts
 
-- Kết quả `validate_dashboard.py`:
-- Evidence dashboard:
+- Kết quả `validate_dashboard.py`: **HỢP LỆ: 6/6 panel**
+- Evidence dashboard: `submission/evidence/09-dashboard-baseline.png`, `10-dashboard-incident.png`
 - SLO đã chọn và lý do:
-- Alert rules và runbook:
+  - `latency_p95_ms`: target 99.5%, objective 3000ms — baseline ~150ms, challenge incident ~2660ms, đặt ngưỡng 3000ms để bắt sớm
+  - `error_rate_pct`: target 99.0%, objective 2% — challenge run cho thấy 0% error, target 2% có buffer nhạy
+  - `daily_cost_usd`: target 100%, objective 2.5 USD — ~0.0025 USD/request, 1000 request/ngày = ~2.5 USD
+  - `quality_score_avg`: target 95.0%, objective 0.75 — mock trả ~0.9, target 0.75 đảm bảo output chất lượng
+- Alert rules và runbook: `submission/evidence/11-alert-rules.png`, `12-runbook-alert1.png`, `13-runbook-alert2.png`, `14-runbook-alert3.png`
+
+---
 
 ## 6. Điều tra challenge
 
-- Challenge ID:
-- Triệu chứng từ metrics:
-- Trace ID liên quan:
-- Log line/correlation ID liên quan:
-- Root cause:
-- Fix action:
-- Preventive measure:
+- Challenge ID: `day13-k4-observability-v1`
+- Triệu chứng từ metrics: `submission/evidence/15-metrics-symptom.png` — latency p95 tăng vượt ngưỡng 2000ms (chứng kiến ~2660ms), error rate vẫn 0%
+- Trace ID liên quan: `submission/evidence/16-trace-root-cause.png`
+- Log line/correlation ID liên quan: `submission/evidence/17-log-root-cause.png`
+- Root cause: **rag_slow incident** — RAG pipeline được cấu hình chậm cố định (~2656ms mỗi request), kéo theo latency p95 = 2660ms vượt SLO 3000ms
+- Fix action: Tối ưu retrieval pipeline (vector index, chunk size, reranker), hoặc tăng ngưỡng SLO tạm thời
+- Preventive measure: Thiết lập alert latency p95 > 2000ms, giám sát RAG span duration, circuit breaker cho slow RAG
+
+---
 
 ## 7. Đóng góp cá nhân
 
@@ -73,3 +81,15 @@ Với mỗi thành viên, ghi rõ nhiệm vụ và link commit/PR tương ứng.
 
 > Điền commit SHA hoặc link PR cụ thể vào cột thứ ba trước khi nộp. RUBRIC mục B2 (20 điểm cá nhân)
 > yêu cầu phần khai ở đây phải khớp với thay đổi thật trong Git.
+
+---
+
+## 8. Checklist nộp bài
+
+- [ ] `python -m pytest -q` xanh
+- [ ] `git status --short` sạch, không có `.env`, key, `.venv/`, log chứa PII
+- [ ] `python scripts/validate_logs.py` đạt ≥ 80/100
+- [ ] `python scripts/validate_dashboard.py` báo `HỢP LỆ: 6/6 panel`
+- [ ] Không còn chữ `TODO` trong `config/`
+- [ ] REPORT.md mục 7 khai đúng commit/PR của từng người
+- [ ] Cả nhóm giải thích được phần mình triển khai

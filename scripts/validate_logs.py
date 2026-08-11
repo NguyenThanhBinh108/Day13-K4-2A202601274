@@ -1,9 +1,11 @@
+import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-LOG_PATH = Path("data/logs.jsonl")
+LOG_PATH = Path(os.getenv("LOG_PATH", "data/logs.jsonl"))
 REQUIRED_FIELDS = {"ts", "level", "service", "event", "correlation_id"}
 ENRICHMENT_FIELDS = {"user_id_hash", "session_id", "feature", "model"}
 PII_DETECTORS = {
@@ -13,13 +15,24 @@ PII_DETECTORS = {
     "credit_card": re.compile(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b"),
 }
 
+
 def main() -> None:
-    if not LOG_PATH.exists():
-        print(f"Error: {LOG_PATH} not found. Run the app and send some requests first.")
+    parser = argparse.ArgumentParser(description="Kiểm tra log schema và PII của Day 13")
+    parser.add_argument(
+        "--log-path",
+        type=Path,
+        default=LOG_PATH,
+        help="Đường dẫn file log (mặc định đọc env LOG_PATH hoặc data/logs.jsonl)",
+    )
+    args = parser.parse_args()
+    log_path = args.log_path
+
+    if not log_path.exists():
+        print(f"Error: {log_path} not found. Run the app and send some requests first.")
         sys.exit(1)
 
     records = []
-    for line in LOG_PATH.read_text(encoding="utf-8").splitlines():
+    for line in log_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         try:

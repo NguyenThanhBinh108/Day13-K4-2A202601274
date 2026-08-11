@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -99,8 +100,8 @@ def main() -> int:
     parser.add_argument(
         "--config",
         type=Path,
-        default=REPO_ROOT / "config" / "dashboard.yaml",
-        help="Đường dẫn tới dashboard YAML",
+        default=Path(os.getenv("DASHBOARD_CONFIG", REPO_ROOT / "config" / "dashboard.yaml")),
+        help="Đường dẫn tới dashboard YAML (mặc định đọc env DASHBOARD_CONFIG hoặc config/dashboard.yaml)",
     )
     args = parser.parse_args()
 

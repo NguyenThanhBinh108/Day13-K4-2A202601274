@@ -21,5 +21,17 @@
     "error_type": {"type": ["string", "null"]},
     "tool_name": {"type": ["string", "null"]},
     "payload": {"type": ["object", "null"]}
-  }
+  },
+  "allOf": [
+    {
+      "comment": "Request-scoped logs (service=='api') must carry the full enrichment context bound by P1's middleware/main.py, matching ENRICHMENT_FIELDS in scripts/validate_logs.py.",
+      "if": {
+        "properties": {"service": {"const": "api"}},
+        "required": ["service"]
+      },
+      "then": {
+        "required": ["user_id_hash", "session_id", "feature", "model", "env"]
+      }
+    }
+  ]
 }

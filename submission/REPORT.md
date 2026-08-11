@@ -4,7 +4,7 @@
 
 - Tên nhóm: K4-2A202601274
 - Repository URL: https://github.com/NguyenThanhBinh108/Day13-K4-2A202601274
-- Commit SHA cuối: `e5af6ea` (cập nhật sau khi merge P1, P2, P3)
+- Commit SHA cuối: *(điền SHA cuối cùng ngay trước khi nộp — xem `git log -1 --format=%H`)*
 - Thành viên và vai trò:
 
 | Thành viên | MSSV | Vai trò | Phạm vi | File sở hữu |
@@ -22,7 +22,7 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ## 2. Kết quả kỹ thuật
 
-- Điểm `validate_logs.py`: **100/100** — canonical run 2026-08-11, 133 bản ghi, **67 correlation ID**, 0 PII leak
+- Điểm `validate_logs.py`: **100/100** — canonical run 2026-08-11, 141 bản ghi, **71 correlation ID**, 0 PII leak
 - Tổng số traces: **0** — `.env` chưa có key Langfuse nên `/health` trả `tracing_enabled: false`.
   Đây là hạng mục còn thiếu, do P3 (Bình) hoàn thành sau khi có key.
 - Số PII leak còn lại: **0** (quét bằng chính 4 detector của `scripts/validate_logs.py`)
@@ -61,17 +61,17 @@ tách theo file sở hữu chứ không tách thêm vai trò mới.
 
 ## 6. Điều tra challenge
 
-Run thật ngày 2026-08-11, mọi con số dưới đây đo từ `data/logs.jsonl` (133 bản ghi).
+Run thật ngày 2026-08-11, mọi con số dưới đây đo từ `data/logs.jsonl` (141 bản ghi).
 
 - Challenge ID: `day13-k4-observability-v1` (cohort K4, incident `rag_slow`, seed 1304, feature `monitoring`)
-- Triệu chứng từ metrics: latency **p50 150ms → 2650ms (×17,7)** giữa baseline (60 request,
+- Triệu chứng từ metrics: latency **p50 150ms → 2651ms (×17,7)** giữa baseline (64 request,
   incident tắt) và challenge (5 request, incident bật). Error rate giữ **0%**, cost và token
   **không đổi** — chỉ mỗi latency động. Chi tiết: [`10-dashboard-incident.md`](evidence/10-dashboard-incident.md)
 - Trace ID liên quan: **chưa có** — `.env` thiếu key Langfuse nên chưa sinh được trace nào.
   Ba trong bốn mắt xích (Metrics → Logs → Root cause) đã có bằng chứng thật; mắt xích Traces
   chờ P3. Xem [`16-trace-root-cause.md`](evidence/16-trace-root-cause.md)
-- Log line/correlation ID liên quan: **`req-245d336c`**, `latency_ms = 2651`,
-  session `k4-challenge-s05`. Hai dòng log nguyên văn cách nhau **2,652s** trong
+- Log line/correlation ID liên quan: **`req-ba5d3bd8`**, `latency_ms = 2651`,
+  session `k4-challenge-s04`. Hai dòng log nguyên văn cách nhau **2,652s** trong
   [`17-log-root-cause.md`](evidence/17-log-root-cause.md)
 - Root cause: cờ incident `rag_slow` bật một **`time.sleep(2.5)` chặn luồng** trong bước truy hồi
   tài liệu `retrieve()` tại [`app/mock_rag.py:18`](../app/mock_rag.py#L18), chạy **trước** lời gọi LLM.

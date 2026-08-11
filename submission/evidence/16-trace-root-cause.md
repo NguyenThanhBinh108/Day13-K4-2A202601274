@@ -4,7 +4,7 @@
 
 - Challenge ID: `day13-k4-observability-v1` (cohort K4)
 - Incident: `rag_slow` · Feature: `monitoring` · Ngưỡng challenge: 2000ms
-- Thời điểm run: 2026-08-11T09:39:05Z – 09:39:19Z
+- Thời điểm run: 2026-08-11T10:12:25Z – 10:12:39Z
 
 ## Trạng thái phần trace
 
@@ -20,12 +20,12 @@ Trace ID sau khi chạy thật: *(P3 điền)*
 Chưa có trace, nhưng luồng **Metrics → Logs** đã đủ khoanh vùng, và trace chỉ còn nhiệm vụ
 xác nhận trực quan span nào ăn thời gian.
 
-| | Baseline (60 request) | Challenge (5 request) | Chênh |
+| | Baseline (64 request) | Challenge (5 request) | Chênh |
 |---|---|---|---|
-| p50 latency | 150ms | 2650ms | **×17,7** |
+| p50 latency | 150ms | 2651ms | **×17,7** |
 | p95 latency | 150ms | 2651ms | ×17,7 |
-| tokens_in / out | 2155 / 8336 toàn cửa sổ | 35 / 92 mỗi request | không đổi |
-| cost mỗi request | ~0.0022 usd | 0.001485 usd | không tăng |
+| tokens_in / out | 2293 / 9289 toàn cửa sổ | 36 / 153 mỗi request | không đổi |
+| cost mỗi request | ~0.0022 usd | 0.002403 usd | không tăng |
 | error rate | 0% | 0% | không đổi |
 
 Độ trễ cộng thêm **≈ +2500ms cố định** ở mọi request, không phải đuôi phân phối.

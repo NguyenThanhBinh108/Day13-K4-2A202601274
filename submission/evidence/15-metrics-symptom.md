@@ -7,22 +7,22 @@ Số liệu đo thật từ `data/logs.jsonl`, run 2026-08-11.
 
 - Challenge ID: `day13-k4-observability-v1` · cohort K4 · seed 1304
 - Incident: `rag_slow` · Feature: `monitoring` · Ngưỡng challenge: **2000ms**
-- Thời gian: 2026-08-11T09:39:05Z — 09:39:19Z · 5 query chính thức
+- Thời gian: 2026-08-11T10:12:25Z — 10:12:39Z · 5 query chính thức
 
 ## So sánh baseline và challenge
 
-| Metric | Baseline (60 req, incident tắt) | Challenge (5 req, `rag_slow` bật) | SLO | Trạng thái |
+| Metric | Baseline (64 req, incident tắt) | Challenge (5 req, `rag_slow` bật) | SLO | Trạng thái |
 |---|---|---|---|---|
-| Request received | 60 | 5 | — | — |
-| Response sent | 60 | 5 | — | — |
+| Request received | 64 | 5 | — | — |
+| Response sent | 64 | 5 | — | — |
 | Request failed | 0 | 0 | — | — |
 | Error rate | 0,00% | 0,00% | ≤ 2% | ĐẠT |
-| Latency p50 | **150 ms** | **2650 ms** | — | — |
+| Latency p50 | **150 ms** | **2651 ms** | — | — |
 | Latency p95 | **150 ms** | **2651 ms** | ≤ 3000 ms | ĐẠT |
 | Latency p99 | 151 ms | 2651 ms | ≤ 3000 ms | ĐẠT |
 | Latency max | 151 ms | 2651 ms | — | — |
-| Cost mỗi request | ~0,0022 usd | 0,001485 usd | — | không tăng |
-| Quality mean | ~0,88 | 0,80 | ≥ 0,75 | ĐẠT |
+| Cost mỗi request | ~0,0022 usd | 0,002403 usd | — | không tăng |
+| Quality mean | ~0,88 | 0,90 | ≥ 0,75 | ĐẠT |
 
 ## Triệu chứng đọc được
 

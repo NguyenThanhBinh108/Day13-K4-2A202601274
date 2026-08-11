@@ -39,7 +39,7 @@ Mỗi trace mang tag `cid:<correlation_id>` do [`app/agent.py`](../../app/agent.
 python -c "import json;[print(l.strip()) for l in open('data/logs.jsonl',encoding='utf-8') if '<correlation_id>' in l]"
 ```
 
-Ví dụ đã chạy được với run thật: `req-245d336c` → hai dòng log `request_received` và
+Ví dụ đã chạy được với run thật: `req-ba5d3bd8` → hai dòng log `request_received` và
 `response_sent`, cách nhau 2,652s. Chi tiết trong
 [`17-log-root-cause.md`](17-log-root-cause.md).
 
@@ -50,7 +50,7 @@ Metrics  p50 latency 150ms -> 2650ms (×17,7), error rate và cost không đổi
    |
 Traces   span `retrieve` chiếm ~2500ms trong waterfall        <- CHỜ KEY LANGFUSE
    |
-Logs     req-245d336c: ts cách nhau 2,652s, tokens/cost bình thường, không có request_failed
+Logs     req-ba5d3bd8: ts cách nhau 2,652s, tokens/cost bình thường, không có request_failed
    |
 Root cause  time.sleep(2.5) trong retrieve() khi cờ rag_slow bật (app/mock_rag.py:18)
 ```

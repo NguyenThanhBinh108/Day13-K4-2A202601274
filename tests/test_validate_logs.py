@@ -25,7 +25,7 @@ def test_validator_detects_raw_vietnamese_phone(
     log_path.write_text(json.dumps(record, ensure_ascii=False) + "\n", encoding="utf-8")
     monkeypatch.setattr(validate_logs, "LOG_PATH", log_path)
 
-    validate_logs.main()
+    validate_logs.main([])
 
     output = capsys.readouterr().out
     assert "Potential PII leaks detected: 1" in output
